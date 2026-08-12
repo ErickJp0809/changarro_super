@@ -20,9 +20,18 @@ $venta_id = intval($_GET["id"]);
 /* Información de la venta */
 
 $sql_venta = "
-    SELECT id, total, metodo_pago, efectivo_recibido, fecha, estado
+    SELECT
+        ventas.id,
+        ventas.total,
+        ventas.metodo_pago,
+        ventas.efectivo_recibido,
+        ventas.fecha,
+        ventas.estado,
+        usuarios.nombre AS usuario_nombre
     FROM ventas
-    WHERE id = $venta_id
+    LEFT JOIN usuarios
+        ON ventas.usuario_id = usuarios.id
+    WHERE ventas.id = $venta_id
 ";
 
 $resultado_venta = $conexion->query($sql_venta);
@@ -279,6 +288,17 @@ if ($venta["metodo_pago"] === "Efectivo") {
                 
                 <p>
                     Venta #<?php echo $venta["id"]; ?>
+                </p>
+
+                <p>
+                    Realizada por:
+                    <strong>
+                        <?php
+                        echo htmlspecialchars(
+                            $venta["usuario_nombre"] ?? "Usuario no disponible"
+                        );
+                        ?>
+                    </strong>
                 </p>
 
                 <p>

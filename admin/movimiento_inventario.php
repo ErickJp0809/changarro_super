@@ -14,39 +14,56 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit();
 }
 
-$producto_id = intval($_POST["producto_id"]);
-$tipo = $_POST["tipo"];
-$cantidad = intval($_POST["cantidad"]);
-$motivo = trim($_POST["motivo"]);
 
-/* Validaciones */
+/* =========================
+   DATOS DEL FORMULARIO
+   ========================= */
+
+$producto_id = intval($_POST["producto_id"] ?? 0);
+$tipo = $_POST["tipo"] ?? "";
+$cantidad = intval($_POST["cantidad"] ?? 0);
+$motivo = trim($_POST["motivo"] ?? "");
+
+$usuario_id = intval($_SESSION["id"]);
+
+
+/* =========================
+   VALIDACIONES
+   ========================= */
 
 if ($producto_id <= 0 || $cantidad <= 0) {
-    header("Location: inventario.php");
-    exit();
+    die("Error: producto o cantidad inválidos.");
 }
 
 if ($tipo !== "entrada" && $tipo !== "salida") {
-    header("Location: inventario.php");
-    exit();
+    die("Error: tipo de movimiento inválido.");
 }
 
 
-/* Buscar producto */
+/* =========================
+   BUSCAR PRODUCTO
+   ========================= */
 
 $sql = "SELECT stock
         FROM productos
         WHERE id = ? AND activo = 1";
 
 $stmt = $conexion->prepare($sql);
+
+if (!$stmt) {
+    die("Error preparando consulta de producto: " . $conexion->error);
+}
+
 $stmt->bind_param("i", $producto_id);
-$stmt->execute();
+
+if (!$stmt->execute()) {
+    die("Error consultando producto: " . $stmt->error);
+}
 
 $resultado = $stmt->get_result();
 
-if ($resultado->num_rows == 0) {
-    header("Location: inventario.php");
-    exit();
+if ($resultado->num_rows === 0) {
+    die("Error: el producto no existe o está inactivo.");
 }
 
 $producto = $resultado->fetch_assoc();
@@ -54,7 +71,9 @@ $producto = $resultado->fetch_assoc();
 $stock_actual = intval($producto["stock"]);
 
 
-/* Calcular nuevo stock */
+/* =========================
+   CALCULAR NUEVO STOCK
+   ========================= */
 
 if ($tipo === "entrada") {
 
@@ -62,18 +81,17 @@ if ($tipo === "entrada") {
 
 } else {
 
-    /* Evitar stock negativo */
-
     if ($cantidad > $stock_actual) {
-        echo "Error: no hay suficiente stock disponible.";
-        exit();
+        die("Error: no hay suficiente stock disponible.");
     }
 
     $nuevo_stock = $stock_actual - $cantidad;
 }
 
 
-/* Actualizar producto */
+/* =========================
+   ACTUALIZAR PRODUCTO
+   ========================= */
 
 $sql_update = "UPDATE productos
                SET stock = ?
@@ -81,35 +99,68 @@ $sql_update = "UPDATE productos
 
 $stmt_update = $conexion->prepare($sql_update);
 
+if (!$stmt_update) {
+    die("Error preparando actualización: " . $conexion->error);
+}
+
 $stmt_update->bind_param(
     "ii",
     $nuevo_stock,
     $producto_id
 );
 
-$stmt_update->execute();
+if (!$stmt_update->execute()) {
+    die("Error actualizando stock: " . $stmt_update->error);
+}
 
 
-/* Registrar movimiento */
+/* =========================
+   REGISTRAR MOVIMIENTO
+   ========================= */
 
-$sql_movimiento = "INSERT INTO movimientos_inventario
-                   (producto_id, tipo, cantidad, motivo)
-                   VALUES (?, ?, ?, ?)";
+$sql_movimiento = "
+    INSERT INTO movimientos_inventario
+    (
+        producto_id,
+        tipo,
+        cantidad,
+        motivo,
+        usuario_id
+    )
+    VALUES (?, ?, ?, ?, ?)
+";
 
 $stmt_movimiento = $conexion->prepare($sql_movimiento);
 
+if (!$stmt_movimiento) {
+    die(
+        "Error preparando movimiento: " .
+        $conexion->error
+    );
+}
+
 $stmt_movimiento->bind_param(
-    "isis",
+    "isisi",
     $producto_id,
     $tipo,
     $cantidad,
-    $motivo
+    $motivo,
+    $usuario_id
 );
 
-$stmt_movimiento->execute();
+if (!$stmt_movimiento->execute()) {
+    die(
+        "Error registrando movimiento: " .
+        $stmt_movimiento->error
+    );
+}
 
 
-/* Regresar al inventario */
+/* =========================
+   REGRESAR A INVENTARIO
+   ========================= */
 
 header("Location: inventario.php");
 exit();
+
+?>

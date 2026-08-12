@@ -10,9 +10,16 @@ if (!isset($_SESSION["id"])) {
 require_once "../config/conexion.php";
 
 /* Obtener ventas */
-$sql = "SELECT id, total, fecha
+$sql = "SELECT
+            ventas.id,
+            ventas.total,
+            ventas.fecha,
+            ventas.estado,
+            usuarios.nombre AS usuario_nombre
         FROM ventas
-        ORDER BY id DESC";
+        LEFT JOIN usuarios
+            ON ventas.usuario_id = usuarios.id
+        ORDER BY ventas.id DESC";
 
 $resultado = $conexion->query($sql);
 
@@ -88,6 +95,8 @@ $resultado = $conexion->query($sql);
                         <th>Folio</th>
                         <th>Total</th>
                         <th>Fecha</th>
+                        <th>Realizada por</th>
+                        <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
 
@@ -114,6 +123,32 @@ $resultado = $conexion->query($sql);
                                 </td>
 
                                 <td>
+                                    <?php
+                                    echo htmlspecialchars(
+                                        $venta["usuario_nombre"] ?? "No disponible"
+                                    );
+                                    ?>
+                                </td>
+
+                                <td>
+
+                                    <?php if ($venta["estado"] === "Cancelada"): ?>
+
+                                        <span class="estado-inactivo">
+                                            ● Cancelada
+                                        </span>
+
+                                    <?php else: ?>
+
+                                        <span class="estado-activo">
+                                            ● Completada
+                                        </span>
+
+                                    <?php endif; ?>
+
+                                </td>
+
+                                <td>
 
                                     <a
                                         href="detalle_venta.php?id=<?php echo $venta["id"]; ?>"
@@ -131,7 +166,7 @@ $resultado = $conexion->query($sql);
 
                         <tr>
 
-                            <td colspan="4" class="sin-datos">
+                            <td colspan="6" class="sin-datos">
                                 No hay ventas registradas todavía.
                             </td>
 

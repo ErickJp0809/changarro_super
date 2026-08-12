@@ -25,10 +25,13 @@ $sql_movimientos = "SELECT
                         movimientos_inventario.tipo,
                         movimientos_inventario.cantidad,
                         movimientos_inventario.motivo,
-                        movimientos_inventario.fecha
+                        movimientos_inventario.fecha,
+                        usuarios.nombre AS usuario_nombre
                     FROM movimientos_inventario
                     INNER JOIN productos
                     ON movimientos_inventario.producto_id = productos.id
+                    LEFT JOIN usuarios
+                    ON movimientos_inventario.usuario_id = usuarios.id
                     ORDER BY movimientos_inventario.fecha DESC";
 
 $resultado_movimientos = $conexion->query($sql_movimientos);
@@ -80,9 +83,16 @@ $resultado_movimientos = $conexion->query($sql_movimientos);
                 $ Ventas
             </a>
 
-            <a href="#">
-                ♙ Usuarios
+            <?php if (
+            isset($_SESSION["rol"]) &&
+            $_SESSION["rol"] === "Administrador"
+        ): ?>
+
+            <a href="usuarios.php">
+                ♟ Usuarios
             </a>
+
+        <?php endif; ?>
 
         </nav>
 
@@ -326,6 +336,8 @@ $resultado_movimientos = $conexion->query($sql_movimientos);
 
                         <th>Motivo</th>
 
+                        <th>Usuario</th>
+
                         <th>Fecha</th>
 
                     </tr>
@@ -388,6 +400,15 @@ $resultado_movimientos = $conexion->query($sql_movimientos);
                             </td>
 
                             <td>
+                                <?php
+                                echo htmlspecialchars(
+                                    $movimiento["usuario_nombre"]
+                                    ?? "No disponible"
+                                );
+                                ?>
+                            </td>
+
+                            <td>
                                 <?php echo $movimiento["fecha"]; ?>
                             </td>
 
@@ -399,7 +420,7 @@ $resultado_movimientos = $conexion->query($sql_movimientos);
 
                     <tr>
 
-                        <td colspan="5">
+                        <td colspan="6">
 
                             No hay movimientos registrados.
 

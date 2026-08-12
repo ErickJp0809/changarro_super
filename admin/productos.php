@@ -60,10 +60,16 @@ $resultado = $conexion->query($sql);
                 $ Ventas
             </a>
 
-            <a href="#">
-                <span>♙</span>
-                Usuarios
+            <?php if (
+            isset($_SESSION["rol"]) &&
+            $_SESSION["rol"] === "Administrador"
+        ): ?>
+
+            <a href="usuarios.php">
+                ♟ Usuarios
             </a>
+
+        <?php endif; ?>
 
         </nav>
 

@@ -31,10 +31,16 @@ $pagina_actual = basename($_SERVER['PHP_SELF']);
             $ Ventas
         </a>
 
-        <a href="usuarios.php"
-           class="<?php echo ($pagina_actual == 'usuarios.php') ? 'active' : ''; ?>">
-            ♙ Usuarios
-        </a>
+        <?php if (
+            isset($_SESSION["rol"]) &&
+            $_SESSION["rol"] === "Administrador"
+        ): ?>
+
+            <a href="usuarios.php">
+                ♟ Usuarios
+            </a>
+
+        <?php endif; ?>
 
     </nav>
 

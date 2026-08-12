@@ -91,3 +91,14 @@ button:hover {
     background: #3a3a3a;
     transform: translateY(-1px);
 }
+
+.mensaje-login {
+    margin-bottom: 18px;
+    padding: 12px 15px;
+    border-radius: 8px;
+    background: #ffe8e8;
+    color: #b42318;
+    font-size: 14px;
+    text-align: center;
+    border: 1px solid #f5b5b5;
+}

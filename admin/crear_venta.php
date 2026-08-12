@@ -31,6 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $productos = $_POST["producto_id"] ?? [];
     $cantidades = $_POST["cantidad"] ?? [];
+    $usuario_id = intval($_SESSION["id"]);
     $metodo_pago = $_POST["metodo_pago"] ?? "Efectivo";
     $efectivo_recibido = floatval($_POST["efectivo_recibido"] ?? 0);
 
@@ -133,9 +134,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             $sql_venta = "
                 INSERT INTO ventas
-                (total, metodo_pago, efectivo_recibido)
+                (total, metodo_pago, efectivo_recibido, usuario_id)
                 VALUES
-                ($total, '$metodo_pago', $efectivo_recibido)"
+                ($total, '$metodo_pago', $efectivo_recibido, $usuario_id)"
             ;
 
             if (!$conexion->query($sql_venta)) {
@@ -211,14 +212,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         producto_id,
                         tipo,
                         cantidad,
-                        motivo
+                        motivo,
+                        usuario_id
                     )
                     VALUES
                     (
                         $producto_id,
                         'Salida',
                         $cantidad,
-                        '$motivo'
+                        '$motivo',
+                        $usuario_id
                     )
                 ";
 
