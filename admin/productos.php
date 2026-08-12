@@ -56,9 +56,8 @@ $resultado = $conexion->query($sql);
             Inventario
             </a>
             
-            <a href="#">
-                <span>$</span>
-                Ventas
+            <a href="ventas.php">
+                $ Ventas
             </a>
 
             <a href="#">

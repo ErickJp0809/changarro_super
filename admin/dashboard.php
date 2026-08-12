@@ -68,9 +68,8 @@ $total_usuarios = $resultado_usuarios->fetch_assoc()["total"];
                 ▤ Inventario
             </a>
 
-            <a href="#">
-                <span>$</span>
-                Ventas
+            <a href="ventas.php">
+                $ Ventas
             </a>
 
             <a href="#">

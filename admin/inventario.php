@@ -76,7 +76,7 @@ $resultado_movimientos = $conexion->query($sql_movimientos);
                 ▤ Inventario
             </a>
 
-            <a href="#">
+            <a href="ventas.php">
                 $ Ventas
             </a>
 
