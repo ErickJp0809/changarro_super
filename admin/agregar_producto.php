@@ -7,7 +7,7 @@ if (!isset($_SESSION["id"])) {
     exit();
 }
 
-require_once "config/conexion.php";
+require_once "../config/conexion.php";
 
 $mensaje = "";
 
@@ -66,7 +66,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <title>Agregar producto | Changarro Súper y Más</title>
 
-    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
 
 </head>
 

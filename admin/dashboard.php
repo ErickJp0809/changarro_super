@@ -3,20 +3,20 @@
 session_start();
 
 if (!isset($_SESSION["id"])) {
-    header("Location: index.php");
+    header("Location: ../index.php");
     exit();
 }
 
-require_once "config/conexion.php";
+require_once "../config/conexion.php";
 
 /* TOTAL DE PRODUCTOS */
-$sql_productos = "SELECT COUNT(*) AS total FROM productos";
+$sql_productos = "SELECT COUNT(*) AS total FROM productos WHERE activo = 1";
 $resultado_productos = $conexion->query($sql_productos);
 $total_productos = $resultado_productos->fetch_assoc()["total"];
 
 
 /* TOTAL DE ARTÍCULOS EN INVENTARIO */
-$sql_stock = "SELECT COALESCE(SUM(stock), 0) AS total FROM productos";
+$sql_stock = "SELECT COALESCE(SUM(stock), 0) AS total FROM productos WHERE activo = 1";
 $resultado_stock = $conexion->query($sql_stock);
 $total_stock = $resultado_stock->fetch_assoc()["total"];
 
@@ -37,7 +37,7 @@ $total_usuarios = $resultado_usuarios->fetch_assoc()["total"];
 
     <title>Panel | Changarro Súper y Más</title>
 
-    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
 </head>
 
 <body>
@@ -64,9 +64,8 @@ $total_usuarios = $resultado_usuarios->fetch_assoc()["total"];
                 Productos
             </a>
 
-            <a href="#">
-                <span>▤</span>
-                Inventario
+            <a href="inventario.php">
+                ▤ Inventario
             </a>
 
             <a href="#">
@@ -82,7 +81,7 @@ $total_usuarios = $resultado_usuarios->fetch_assoc()["total"];
         </nav>
 
         <div class="salir">
-            <a href="logout.php">
+            <a href="../logout.php">
                 Cerrar sesión
             </a>
         </div>

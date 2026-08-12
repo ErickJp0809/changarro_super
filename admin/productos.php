@@ -7,9 +7,11 @@ if (!isset($_SESSION["id"])) {
     exit();
 }
 
-require_once "config/conexion.php";
+require_once "../config/conexion.php";
 
-$sql = "SELECT * FROM productos ORDER BY id DESC";
+$sql = "SELECT * FROM productos
+        WHERE activo = 1
+        ORDER BY id DESC";
 $resultado = $conexion->query($sql);
 
 ?>
@@ -23,7 +25,7 @@ $resultado = $conexion->query($sql);
 
     <title>Productos | Changarro Súper y Más</title>
 
-    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
 </head>
 
 <body>
@@ -49,11 +51,11 @@ $resultado = $conexion->query($sql);
                 Productos
             </a>
 
-            <a href="#">
-                <span>▤</span>
-                Inventario
+            <a href="inventario.php">
+            <span>▤</span>
+            Inventario
             </a>
-
+            
             <a href="#">
                 <span>$</span>
                 Ventas
@@ -67,7 +69,9 @@ $resultado = $conexion->query($sql);
         </nav>
 
         <div class="salir">
-            <a href="logout.php">Cerrar sesión</a>
+            <a href="../logout.php">
+                Cerrar sesión
+            </a>
         </div>
 
     </aside>
@@ -160,7 +164,33 @@ $resultado = $conexion->query($sql);
                                 </td>
 
                                 <td>
-                                    <?php echo $producto["stock"]; ?>
+                                    <?php
+                                    $stock = $producto["stock"];
+
+                                    if ($stock == 0) {
+                                        $estado_stock = "rojo";
+                                        $texto_stock = "Agotado";
+                                    } elseif ($stock <= 10) {
+                                        $estado_stock = "amarillo";
+                                        $texto_stock = "Stock bajo";
+                                    } else {
+                                        $estado_stock = "verde";
+                                        $texto_stock = "Stock suficiente";
+                                    }
+                                    ?>
+
+                                    <div class="stock-indicador">
+
+                                        <span class="stock-numero">
+                                            <?php echo $stock; ?>
+                                        </span>
+
+                                        <span
+                                            class="stock-foco <?php echo $estado_stock; ?>"
+                                            title="<?php echo $texto_stock; ?>">
+                                        </span>
+
+                                    </div>
                                 </td>
 
                                 <td>
@@ -168,8 +198,14 @@ $resultado = $conexion->query($sql);
                                 </td>
 
                                 <td>
-                                    <button class="btn-editar">Editar</button>
-                                    <button class="btn-eliminar">Eliminar</button>
+                                    <a href="editar_producto.php?id=<?php echo $producto['id']; ?>" class="btn-editar">
+                                        Editar
+                                    </a>
+                                    <a href="eliminar_producto.php?id=<?php echo $producto['id']; ?>"
+                                    class="btn-eliminar"
+                                    onclick="return confirm('¿Deseas eliminar este producto?');">
+                                        Eliminar
+                                    </a>
                                 </td>
 
                             </tr>

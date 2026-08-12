@@ -32,7 +32,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION["usuario"] = $datos_usuario["usuario"];
             $_SESSION["rol"] = $datos_usuario["rol"];
 
-            header("Location: dashboard.php");
+            header("Location: admin/dashboard.php");
             exit();
 
         } else {
