@@ -1,53 +1,126 @@
 <?php
-$pagina_actual = basename($_SERVER['PHP_SELF']);
+
+$pagina_actual = basename($_SERVER["PHP_SELF"]);
+
 ?>
 
 <aside class="sidebar">
 
+
+    <!-- =========================================
+         LOGO
+         ========================================= -->
+
     <div class="marca">
-        <h2>Changarro</h2>
-        <span>Súper y Más</span>
+
+        <img
+            src="../img/logo_changarro_transparente.png"
+            alt="El Changarro"
+        >
+
     </div>
+
+
+    <!-- =========================================
+         MENÚ
+         ========================================= -->
 
     <nav class="menu">
 
-        <a href="dashboard.php"
-           class="<?php echo ($pagina_actual == 'dashboard.php') ? 'active' : ''; ?>">
-            ⌂ Inicio
+
+        <!-- INICIO -->
+
+        <a
+            href="dashboard.php"
+            class="<?php echo ($pagina_actual == "dashboard.php") ? "activo" : ""; ?>"
+        >
+
+            <span>⌂</span>
+
+            Inicio
+
         </a>
 
-        <a href="productos.php"
-           class="<?php echo ($pagina_actual == 'productos.php') ? 'active' : ''; ?>">
-            ▣ Productos
+
+        <!-- PRODUCTOS -->
+
+        <a
+            href="productos.php"
+            class="<?php echo ($pagina_actual == "productos.php") ? "activo" : ""; ?>"
+        >
+
+            <span>▣</span>
+
+            Productos
+
         </a>
 
-        <a href="inventario.php"
-           class="<?php echo ($pagina_actual == 'inventario.php') ? 'active' : ''; ?>">
-            ▤ Inventario
+
+        <!-- INVENTARIO -->
+
+        <a
+            href="inventario.php"
+            class="<?php echo ($pagina_actual == "inventario.php") ? "activo" : ""; ?>"
+        >
+
+            <span>▤</span>
+
+            Inventario
+
         </a>
 
-        <a href="ventas.php"
-           class="<?php echo ($pagina_actual == 'ventas.php') ? 'active' : ''; ?>">
-            $ Ventas
+
+        <!-- VENTAS -->
+
+        <a
+            href="ventas.php"
+            class="<?php echo ($pagina_actual == "ventas.php") ? "activo" : ""; ?>"
+        >
+
+            <span>$</span>
+
+            Ventas
+
         </a>
+
+
+        <!-- USUARIOS -->
 
         <?php if (
             isset($_SESSION["rol"]) &&
             $_SESSION["rol"] === "Administrador"
         ): ?>
 
-            <a href="usuarios.php">
-                ♟ Usuarios
+            <a
+                href="usuarios.php"
+                class="<?php echo ($pagina_actual == "usuarios.php") ? "activo" : ""; ?>"
+            >
+
+                <span>♟</span>
+
+                Usuarios
+
             </a>
 
         <?php endif; ?>
 
+
     </nav>
 
+
+    <!-- =========================================
+         CERRAR SESIÓN
+         ========================================= -->
+
     <div class="salir">
+
         <a href="../logout.php">
+
             Cerrar sesión
+
         </a>
+
     </div>
+
 
 </aside>

@@ -9,32 +9,48 @@ if (!isset($_SESSION["id"])) {
 
 require_once "../config/conexion.php";
 
-/* PRODUCTOS ACTIVOS */
-$sql_productos = "SELECT id, nombre, stock
-                  FROM productos
-                  WHERE activo = 1
-                  ORDER BY nombre ASC";
 
-$resultado_productos = $conexion->query($sql_productos);
+/* =========================================
+   PRODUCTOS ACTIVOS
+   ========================================= */
+
+$sql_productos = "
+    SELECT id, nombre, stock
+    FROM productos
+    WHERE activo = 1
+    ORDER BY nombre ASC
+";
+
+$resultado_productos =
+    $conexion->query($sql_productos);
 
 
-/* MOVIMIENTOS */
-$sql_movimientos = "SELECT 
-                        movimientos_inventario.id,
-                        productos.nombre,
-                        movimientos_inventario.tipo,
-                        movimientos_inventario.cantidad,
-                        movimientos_inventario.motivo,
-                        movimientos_inventario.fecha,
-                        usuarios.nombre AS usuario_nombre
-                    FROM movimientos_inventario
-                    INNER JOIN productos
-                    ON movimientos_inventario.producto_id = productos.id
-                    LEFT JOIN usuarios
-                    ON movimientos_inventario.usuario_id = usuarios.id
-                    ORDER BY movimientos_inventario.fecha DESC";
+/* =========================================
+   MOVIMIENTOS DE INVENTARIO
+   ========================================= */
 
-$resultado_movimientos = $conexion->query($sql_movimientos);
+$sql_movimientos = "
+    SELECT
+        movimientos_inventario.id,
+        productos.nombre,
+        movimientos_inventario.tipo,
+        movimientos_inventario.cantidad,
+        movimientos_inventario.motivo,
+        movimientos_inventario.fecha,
+        usuarios.nombre AS usuario_nombre
+    FROM movimientos_inventario
+
+    INNER JOIN productos
+        ON movimientos_inventario.producto_id = productos.id
+
+    LEFT JOIN usuarios
+        ON movimientos_inventario.usuario_id = usuarios.id
+
+    ORDER BY movimientos_inventario.fecha DESC
+";
+
+$resultado_movimientos =
+    $conexion->query($sql_movimientos);
 
 ?>
 
@@ -43,79 +59,55 @@ $resultado_movimientos = $conexion->query($sql_movimientos);
 
 <head>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
 
-<title>Inventario | Changarro Súper y Más</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<link rel="stylesheet" href="../css/dashboard.css">
+    <title>
+        Inventario | Changarro Súper y Más
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="../css/dashboard.css"
+    >
 
 </head>
 
+
 <body>
+
 
 <div class="contenedor">
 
-    <!-- MENÚ LATERAL -->
 
-    <aside class="sidebar">
+    <!-- =========================================
+         SIDEBAR
+         ========================================= -->
 
-        <div class="marca">
-            <h2>Changarro</h2>
-            <span>Súper y Más</span>
-        </div>
-
-        <nav class="menu">
-
-            <a href="dashboard.php">
-                ⌂ Inicio
-            </a>
-
-            <a href="productos.php">
-                ▣ Productos
-            </a>
-
-            <a href="inventario.php" class="activo">
-                ▤ Inventario
-            </a>
-
-            <a href="ventas.php">
-                $ Ventas
-            </a>
-
-            <?php if (
-            isset($_SESSION["rol"]) &&
-            $_SESSION["rol"] === "Administrador"
-        ): ?>
-
-            <a href="usuarios.php">
-                ♟ Usuarios
-            </a>
-
-        <?php endif; ?>
-
-        </nav>
-
-        <div class="salir">
-
-            <a href="../logout.php">
-                Cerrar sesión
-            </a>
-
-        </div>
-
-    </aside>
+    <?php include "../includes/sidebar.php"; ?>
 
 
-    <!-- CONTENIDO -->
+    <!-- =========================================
+         CONTENIDO
+         ========================================= -->
 
     <main class="contenido">
 
+
+        <!-- ENCABEZADO -->
+
         <header class="encabezado">
+
 
             <div>
 
-                <h1>Inventario</h1>
+                <h1>
+                    Inventario
+                </h1>
 
                 <p>
                     Controla las entradas y salidas de productos.
@@ -124,90 +116,162 @@ $resultado_movimientos = $conexion->query($sql_movimientos);
             </div>
 
 
+            <!-- PERFIL -->
+
             <div class="perfil">
 
+
                 <div class="avatar">
-                    <?php echo strtoupper(substr($_SESSION["nombre"], 0, 1)); ?>
+
+                    <?php
+
+                    echo strtoupper(
+                        substr(
+                            $_SESSION["nombre"],
+                            0,
+                            1
+                        )
+                    );
+
+                    ?>
+
                 </div>
+
 
                 <div>
 
                     <strong>
-                        <?php echo $_SESSION["nombre"]; ?>
+
+                        <?php
+
+                        echo htmlspecialchars(
+                            $_SESSION["nombre"]
+                        );
+
+                        ?>
+
                     </strong>
 
-                    <br>
 
                     <span>
-                        <?php echo $_SESSION["rol"]; ?>
+
+                        <?php
+
+                        echo htmlspecialchars(
+                            $_SESSION["rol"]
+                        );
+
+                        ?>
+
                     </span>
 
                 </div>
 
+
             </div>
+
 
         </header>
 
 
-        <!-- RESUMEN -->
+        <!-- =========================================
+             RESUMEN DEL INVENTARIO
+             ========================================= -->
+
+        <?php
+
+        $total_productos = 0;
+        $total_stock = 0;
+
+
+        while (
+            $producto =
+            $resultado_productos->fetch_assoc()
+        ) {
+
+            $total_productos++;
+
+            $total_stock +=
+                $producto["stock"];
+
+        }
+
+        ?>
+
 
         <section class="inventario-resumen">
 
-            <?php
 
-            $total_productos = 0;
-            $total_stock = 0;
-
-            while ($producto = $resultado_productos->fetch_assoc()) {
-
-                $total_productos++;
-                $total_stock += $producto["stock"];
-
-            }
-
-            ?>
+            <!-- PRODUCTOS ACTIVOS -->
 
             <div class="inventario-card">
 
-                <span>Productos activos</span>
+                <span class="titulo">
+                    Productos activos
+                </span>
 
-                <strong>
-                    <?php echo $total_productos; ?>
+                <strong class="numero">
+
+                    <?php
+
+                    echo $total_productos;
+
+                    ?>
+
                 </strong>
 
-                <small>
+                <span class="descripcion">
                     Productos disponibles
-                </small>
+                </span>
 
             </div>
 
+
+            <!-- STOCK TOTAL -->
 
             <div class="inventario-card">
 
-                <span>Stock total</span>
+                <span class="titulo">
+                    Stock total
+                </span>
 
-                <strong>
-                    <?php echo $total_stock; ?>
+                <strong class="numero">
+
+                    <?php
+
+                    echo $total_stock;
+
+                    ?>
+
                 </strong>
 
-                <small>
+                <span class="descripcion">
                     Artículos disponibles
-                </small>
+                </span>
 
             </div>
+
 
         </section>
 
 
-        <!-- MOVIMIENTOS -->
+        <!-- =========================================
+             PANEL DE MOVIMIENTOS
+             ========================================= -->
 
         <section class="inventario-panel">
 
+
+            <!-- CABECERA -->
+
             <div class="inventario-panel-header">
+
 
                 <div>
 
-                    <h2>Movimientos de inventario</h2>
+                    <h2>
+                        Movimientos de inventario
+                    </h2>
 
                     <p>
                         Historial de entradas y salidas.
@@ -215,63 +279,121 @@ $resultado_movimientos = $conexion->query($sql_movimientos);
 
                 </div>
 
-                <button class="btn-movimiento" onclick="document.getElementById('formMovimiento').style.display='block'">
+
+                <button
+                    type="button"
+                    class="btn-movimiento"
+                    onclick="
+                        document.getElementById('formMovimiento').style.display =
+                        document.getElementById('formMovimiento').style.display === 'none'
+                        ? 'block'
+                        : 'none';
+                    "
+                >
 
                     + Registrar movimiento
 
                 </button>
 
+
             </div>
 
 
-            <!-- FORMULARIO -->
+            <!-- =========================================
+                 FORMULARIO
+                 ========================================= -->
 
-            <div id="formMovimiento" style="display:none;">
+            <div
+                id="formMovimiento"
+                style="display:none;"
+            >
 
-                <form class="form-movimiento" method="POST" action="movimiento_inventario.php">
+
+                <form
+                    class="form-movimiento"
+                    method="POST"
+                    action="movimiento_inventario.php"
+                >
+
+
+                    <!-- PRODUCTO -->
 
                     <label>
                         Producto
                     </label>
 
-                    <select name="producto_id" required>
+
+                    <select
+                        name="producto_id"
+                        required
+                    >
 
                         <option value="">
                             Selecciona un producto
                         </option>
 
+
                         <?php
 
-                        $productos_form = $conexion->query(
-                            "SELECT id, nombre, stock
-                             FROM productos
-                             WHERE activo = 1
-                             ORDER BY nombre"
-                        );
+                        $productos_form =
+                            $conexion->query(
+                                "
+                                SELECT id, nombre, stock
+                                FROM productos
+                                WHERE activo = 1
+                                ORDER BY nombre
+                                "
+                            );
 
-                        while ($p = $productos_form->fetch_assoc()):
+
+                        while (
+                            $p =
+                            $productos_form->fetch_assoc()
+                        ):
 
                         ?>
 
-                            <option value="<?php echo $p["id"]; ?>">
 
-                                <?php echo htmlspecialchars($p["nombre"]); ?>
+                            <option
+                                value="<?php echo $p["id"]; ?>"
+                            >
+
+                                <?php
+
+                                echo htmlspecialchars(
+                                    $p["nombre"]
+                                );
+
+                                ?>
 
                                 - Stock:
-                                <?php echo $p["stock"]; ?>
+
+                                <?php
+
+                                echo $p["stock"];
+
+                                ?>
 
                             </option>
 
+
                         <?php endwhile; ?>
+
 
                     </select>
 
+
+                    <!-- TIPO -->
 
                     <label>
                         Tipo de movimiento
                     </label>
 
-                    <select name="tipo" required>
+
+                    <select
+                        name="tipo"
+                        required
+                    >
 
                         <option value="">
                             Selecciona
@@ -288,9 +410,12 @@ $resultado_movimientos = $conexion->query($sql_movimientos);
                     </select>
 
 
+                    <!-- CANTIDAD -->
+
                     <label>
                         Cantidad
                     </label>
+
 
                     <input
                         type="number"
@@ -300,9 +425,12 @@ $resultado_movimientos = $conexion->query($sql_movimientos);
                     >
 
 
+                    <!-- MOTIVO -->
+
                     <label>
                         Motivo
                     </label>
+
 
                     <input
                         type="text"
@@ -311,134 +439,283 @@ $resultado_movimientos = $conexion->query($sql_movimientos);
                     >
 
 
-                    <button type="submit">
+                    <!-- GUARDAR -->
+
+                    <button
+                        type="submit"
+                    >
+
                         Guardar movimiento
+
                     </button>
 
+
                 </form>
+
 
             </div>
 
 
-            <!-- TABLA -->
+            <!-- =========================================
+                 TABLA DE MOVIMIENTOS
+                 ========================================= -->
 
-            <table class="inventario-tabla">
-
-                <thead>
-
-                    <tr>
-
-                        <th>Producto</th>
-
-                        <th>Tipo</th>
-
-                        <th>Cantidad</th>
-
-                        <th>Motivo</th>
-
-                        <th>Usuario</th>
-
-                        <th>Fecha</th>
-
-                    </tr>
-
-                </thead>
+            <div
+                class="tabla-contenedor"
+            >
 
 
-                <tbody>
+                <table
+                    class="inventario-tabla"
+                >
 
-                <?php if ($resultado_movimientos->num_rows > 0): ?>
 
-                    <?php while ($movimiento = $resultado_movimientos->fetch_assoc()): ?>
+                    <thead>
 
                         <tr>
 
-                            <td>
-                                <?php echo htmlspecialchars($movimiento["nombre"]); ?>
-                            </td>
+                            <th>
+                                Producto
+                            </th>
 
-                            <td>
+                            <th>
+                                Tipo
+                            </th>
 
-                                <?php if ($movimiento["tipo"] == "entrada"): ?>
+                            <th>
+                                Cantidad
+                            </th>
 
-                                    <strong>
-                                        Entrada
-                                    </strong>
+                            <th>
+                                Motivo
+                            </th>
 
-                                <?php else: ?>
+                            <th>
+                                Realizado por
+                            </th>
 
-                                    <strong>
-                                        Salida
-                                    </strong>
+                            <th>
+                                Fecha
+                            </th>
 
-                                <?php endif; ?>
+                        </tr>
 
-                            </td>
+                    </thead>
 
-                            <td>
 
-                                <?php
+                    <tbody>
 
-                                if ($movimiento["tipo"] == "entrada") {
 
-                                    echo "+";
+                    <?php if (
+                        $resultado_movimientos &&
+                        $resultado_movimientos->num_rows > 0
+                    ): ?>
 
-                                } else {
 
-                                    echo "-";
+                        <?php while (
+                            $movimiento =
+                            $resultado_movimientos->fetch_assoc()
+                        ): ?>
 
-                                }
 
-                                ?>
+                            <tr>
 
-                                <?php echo $movimiento["cantidad"]; ?>
 
-                            </td>
+                                <!-- PRODUCTO -->
 
-                            <td>
-                                <?php echo htmlspecialchars($movimiento["motivo"]); ?>
-                            </td>
+                                <td>
 
-                            <td>
-                                <?php
-                                echo htmlspecialchars(
-                                    $movimiento["usuario_nombre"]
-                                    ?? "No disponible"
-                                );
-                                ?>
-                            </td>
+                                    <?php
 
-                            <td>
-                                <?php echo $movimiento["fecha"]; ?>
+                                    echo htmlspecialchars(
+                                        $movimiento["nombre"]
+                                    );
+
+                                    ?>
+
+                                </td>
+
+
+                                <!-- TIPO -->
+
+                                <td>
+
+
+                                    <?php if (
+                                        $movimiento["tipo"]
+                                        === "entrada"
+                                    ): ?>
+
+
+                                        <span
+                                            class="movimiento-entrada"
+                                        >
+
+                                            Entrada
+
+                                        </span>
+
+
+                                    <?php else: ?>
+
+
+                                        <span
+                                            class="movimiento-salida"
+                                        >
+
+                                            Salida
+
+                                        </span>
+
+
+                                    <?php endif; ?>
+
+
+                                </td>
+
+
+                                <!-- CANTIDAD -->
+
+                                <td>
+
+
+                                    <?php if (
+                                        $movimiento["tipo"]
+                                        === "entrada"
+                                    ): ?>
+
+                                        <span
+                                            class="movimiento-entrada"
+                                        >
+
+                                            +
+
+                                            <?php
+
+                                            echo $movimiento[
+                                                "cantidad"
+                                            ];
+
+                                            ?>
+
+                                        </span>
+
+                                    <?php else: ?>
+
+                                        <span
+                                            class="movimiento-salida"
+                                        >
+
+                                            -
+
+                                            <?php
+
+                                            echo $movimiento[
+                                                "cantidad"
+                                            ];
+
+                                            ?>
+
+                                        </span>
+
+                                    <?php endif; ?>
+
+
+                                </td>
+
+
+                                <!-- MOTIVO -->
+
+                                <td>
+
+                                    <?php
+
+                                    echo htmlspecialchars(
+                                        $movimiento["motivo"]
+                                        ?? ""
+                                    );
+
+                                    ?>
+
+                                </td>
+
+
+                                <!-- USUARIO -->
+
+                                <td>
+
+                                    <?php
+
+                                    echo htmlspecialchars(
+                                        $movimiento[
+                                            "usuario_nombre"
+                                        ]
+                                        ?? "No disponible"
+                                    );
+
+                                    ?>
+
+                                </td>
+
+
+                                <!-- FECHA -->
+
+                                <td>
+
+                                    <?php
+
+                                    echo $movimiento[
+                                        "fecha"
+                                    ];
+
+                                    ?>
+
+                                </td>
+
+
+                            </tr>
+
+
+                        <?php endwhile; ?>
+
+
+                    <?php else: ?>
+
+
+                        <tr>
+
+                            <td
+                                colspan="6"
+                                class="sin-datos"
+                            >
+
+                                No hay movimientos registrados.
+
                             </td>
 
                         </tr>
 
-                    <?php endwhile; ?>
 
-                <?php else: ?>
+                    <?php endif; ?>
 
-                    <tr>
 
-                        <td colspan="6">
+                    </tbody>
 
-                            No hay movimientos registrados.
 
-                        </td>
+                </table>
 
-                    </tr>
 
-                <?php endif; ?>
+            </div>
 
-                </tbody>
-
-            </table>
 
         </section>
 
+
     </main>
 
+
 </div>
+
 
 </body>
 

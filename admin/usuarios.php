@@ -9,12 +9,20 @@ if (!isset($_SESSION["id"])) {
 
 require_once "../config/conexion.php";
 
+
+/* =========================================
+   SOLO ADMINISTRADORES
+   ========================================= */
+
 if ($_SESSION["rol"] !== "Administrador") {
     header("Location: dashboard.php");
     exit();
 }
 
-/* Obtener usuarios */
+
+/* =========================================
+   OBTENER USUARIOS
+   ========================================= */
 
 $sql = "
     SELECT
@@ -55,20 +63,37 @@ $resultado = $conexion->query($sql);
 
 </head>
 
+
 <body>
 
-<div class="admin-layout">
+
+<div class="contenedor">
+
+
+    <!-- =========================================
+         SIDEBAR
+         ========================================= -->
 
     <?php include "../includes/sidebar.php"; ?>
 
 
+    <!-- =========================================
+         CONTENIDO
+         ========================================= -->
+
     <main class="contenido">
 
-        <div class="encabezado">
+
+        <!-- ENCABEZADO -->
+
+        <header class="encabezado">
+
 
             <div>
 
-                <h1>Usuarios</h1>
+                <h1>
+                    Usuarios
+                </h1>
 
                 <p>
                     Administra los usuarios del sistema.
@@ -77,32 +102,75 @@ $resultado = $conexion->query($sql);
             </div>
 
 
-            <div class="usuario">
+            <!-- PERFIL -->
+
+            <div class="perfil">
+
 
                 <div class="avatar">
-                    A
+
+                    <?php
+
+                    echo strtoupper(
+                        substr(
+                            $_SESSION["nombre"],
+                            0,
+                            1
+                        )
+                    );
+
+                    ?>
+
                 </div>
+
 
                 <div>
 
                     <strong>
-                        Administrador
+
+                        <?php
+
+                        echo htmlspecialchars(
+                            $_SESSION["nombre"]
+                        );
+
+                        ?>
+
                     </strong>
 
+
                     <span>
-                        Administrador
+
+                        <?php
+
+                        echo htmlspecialchars(
+                            $_SESSION["rol"]
+                        );
+
+                        ?>
+
                     </span>
 
                 </div>
 
+
             </div>
 
-        </div>
+
+        </header>
 
 
-        <section class="panel">
+        <!-- =========================================
+             PANEL DE USUARIOS
+             ========================================= -->
 
-            <div class="panel-header">
+        <section class="panel-productos">
+
+
+            <!-- CABECERA -->
+
+            <div class="cabecera-productos">
+
 
                 <div>
 
@@ -119,190 +187,271 @@ $resultado = $conexion->query($sql);
 
                 <a
                     href="agregar_usuario.php"
-                    class="btn-principal"
+                    class="btn-agregar"
                 >
+
                     + Agregar usuario
+
                 </a>
+
 
             </div>
 
 
-            <table class="tabla">
+            <!-- =========================================
+                 TABLA
+                 ========================================= -->
 
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            Nombre
-                        </th>
-
-                        <th>
-                            Usuario
-                        </th>
-
-                        <th>
-                            Rol
-                        </th>
-
-                        <th>
-                            Estado
-                        </th>
-
-                        <th>
-                            Fecha de registro
-                        </th>
-
-                        <th>
-                            Acciones
-                        </th>
-
-                    </tr>
-
-                </thead>
+            <div class="tabla-contenedor">
 
 
-                <tbody>
+                <table>
 
-                <?php if ($resultado->num_rows > 0): ?>
 
-                    <?php while (
-                        $usuario =
-                        $resultado->fetch_assoc()
-                    ): ?>
+                    <thead>
 
                         <tr>
 
-                            <td>
-                                <?php
-                                echo htmlspecialchars(
-                                    $usuario["nombre"]
-                                );
-                                ?>
-                            </td>
+                            <th>
+                                Nombre
+                            </th>
+
+                            <th>
+                                Usuario
+                            </th>
+
+                            <th>
+                                Rol
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                                Fecha de registro
+                            </th>
+
+                            <th>
+                                Acciones
+                            </th>
+
+                        </tr>
+
+                    </thead>
 
 
-                            <td>
-                                <?php
-                                echo htmlspecialchars(
-                                    $usuario["usuario"]
-                                );
-                                ?>
-                            </td>
+                    <tbody>
 
 
-                            <td>
-
-                                <?php
-                                echo htmlspecialchars(
-                                    $usuario["rol"]
-                                );
-                                ?>
-
-                            </td>
+                    <?php if (
+                        $resultado &&
+                        $resultado->num_rows > 0
+                    ): ?>
 
 
-                            <td>
-
-                                <?php if (
-                                    $usuario["estado"]
-                                    === "Activo"
-                                ): ?>
-
-                                    <span class="estado-activo">
-                                        ● Activo
-                                    </span>
-
-                                <?php else: ?>
-
-                                    <span class="estado-inactivo">
-                                        ● Inactivo
-                                    </span>
-
-                                <?php endif; ?>
-
-                            </td>
+                        <?php while (
+                            $usuario =
+                            $resultado->fetch_assoc()
+                        ): ?>
 
 
-                            <td>
-
-                                <?php
-                                echo $usuario[
-                                    "fecha_registro"
-                                ];
-                                ?>
-
-                            </td>
+                            <tr>
 
 
-                            <td>
+                                <!-- NOMBRE -->
 
-                                <a
-                                    href="editar_usuario.php?id=<?php echo $usuario["id"]; ?>"
-                                    class="btn-editar"
-                                >
-                                    Editar
-                                </a>
+                                <td>
+
+                                    <?php
+
+                                    echo htmlspecialchars(
+                                        $usuario["nombre"]
+                                    );
+
+                                    ?>
+
+                                </td>
 
 
-                                <?php if ($_SESSION["rol"] === "Administrador"): ?>
+                                <!-- USUARIO -->
 
-                                <?php if (
-                                    $usuario["estado"] === "Activo"
-                                ): ?>
+                                <td>
+
+                                    <?php
+
+                                    echo htmlspecialchars(
+                                        $usuario["usuario"]
+                                    );
+
+                                    ?>
+
+                                </td>
+
+
+                                <!-- ROL -->
+
+                                <td>
+
+                                    <?php
+
+                                    echo htmlspecialchars(
+                                        $usuario["rol"]
+                                    );
+
+                                    ?>
+
+                                </td>
+
+
+                                <!-- ESTADO -->
+
+                                <td>
+
+
+                                    <?php if (
+                                        $usuario["estado"]
+                                        === "Activo"
+                                    ): ?>
+
+
+                                        <span
+                                            class="estado-activo"
+                                        >
+
+                                            ● Activo
+
+                                        </span>
+
+
+                                    <?php else: ?>
+
+
+                                        <span
+                                            class="estado-inactivo"
+                                        >
+
+                                            ● Inactivo
+
+                                        </span>
+
+
+                                    <?php endif; ?>
+
+
+                                </td>
+
+
+                                <!-- FECHA -->
+
+                                <td>
+
+                                    <?php
+
+                                    echo $usuario[
+                                        "fecha_registro"
+                                    ];
+
+                                    ?>
+
+                                </td>
+
+
+                                <!-- ACCIONES -->
+
+                                <td>
+
 
                                     <a
-                                        href="cambiar_estado_usuario.php?id=<?php echo $usuario["id"]; ?>&estado=Inactivo"
-                                        class="btn-eliminar"
-                                        onclick="return confirm('¿Seguro que deseas desactivar este usuario?');"
+                                        href="editar_usuario.php?id=<?php echo $usuario["id"]; ?>"
+                                        class="btn-editar"
                                     >
-                                        Desactivar
+
+                                        Editar
+
                                     </a>
 
-                                <?php else: ?>
 
-                                    <a
-                                        href="cambiar_estado_usuario.php?id=<?php echo $usuario["id"]; ?>&estado=Activo"
-                                        class="btn-activar"
-                                        onclick="return confirm('¿Deseas activar este usuario?');"
-                                    >
-                                        Activar
-                                    </a>
+                                    <?php if (
+                                        $usuario["estado"]
+                                        === "Activo"
+                                    ): ?>
 
-                                <?php endif; ?>
 
-                            <?php endif; ?>
+                                        <a
+                                            href="cambiar_estado_usuario.php?id=<?php echo $usuario["id"]; ?>&estado=Inactivo"
+                                            class="btn-eliminar"
+                                            onclick="return confirm('¿Seguro que deseas desactivar este usuario?');"
+                                        >
+
+                                            Desactivar
+
+                                        </a>
+
+
+                                    <?php else: ?>
+
+
+                                        <a
+                                            href="cambiar_estado_usuario.php?id=<?php echo $usuario["id"]; ?>&estado=Activo"
+                                            class="btn-activar"
+                                            onclick="return confirm('¿Deseas activar este usuario?');"
+                                        >
+
+                                            Activar
+
+                                        </a>
+
+
+                                    <?php endif; ?>
+
+
+                                </td>
+
+
+                            </tr>
+
+
+                        <?php endwhile; ?>
+
+
+                    <?php else: ?>
+
+
+                        <tr>
+
+                            <td
+                                colspan="6"
+                                class="sin-datos"
+                            >
+
+                                No hay usuarios registrados todavía.
 
                             </td>
 
                         </tr>
 
-                    <?php endwhile; ?>
 
-                <?php else: ?>
+                    <?php endif; ?>
 
-                    <tr>
 
-                        <td
-                            colspan="6"
-                            class="sin-datos"
-                        >
-                            No hay usuarios registrados todavía.
-                        </td>
+                    </tbody>
 
-                    </tr>
 
-                <?php endif; ?>
+                </table>
 
-                </tbody>
 
-            </table>
+            </div>
+
 
         </section>
 
+
     </main>
 
+
 </div>
+
 
 </body>
 

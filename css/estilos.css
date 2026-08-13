@@ -1,104 +1,353 @@
+/* =========================================
+   RESET
+   ========================================= */
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+
+/* =========================================
+   BODY
+   ========================================= */
+
 body {
     font-family: Arial, Helvetica, sans-serif;
+
     min-height: 100vh;
-    background: #f4f6f8;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f5f6f8 0%,
+            #eef1f4 100%
+        );
+
+    color: #222;
 }
+
+
+/* =========================================
+   CONTENEDOR DEL LOGIN
+   ========================================= */
 
 .login-container {
     min-height: 100vh;
+
     display: flex;
+
     justify-content: center;
     align-items: center;
-    padding: 20px;
+
+    padding: 25px;
 }
+
+
+/* =========================================
+   CAJA PRINCIPAL
+   ========================================= */
 
 .login-box {
     width: 100%;
-    max-width: 420px;
-    background: white;
-    padding: 45px 40px;
-    border-radius: 18px;
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.10);
+    max-width: 430px;
+
+    background: #ffffff;
+
+    padding: 30px 40px 30px;
+
+    border-radius: 20px;
+
+    border: 1px solid #e8e8e8;
+
+    box-shadow:
+        0 15px 45px rgba(0, 0, 0, 0.10);
+
+    overflow: hidden;
 }
+
+
+/* =========================================
+   LOGO
+   ========================================= */
+
+.login-logo {
+    width: 100%;
+    height: 145px;
+
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+
+    margin-bottom: 12px;
+
+    overflow: hidden;
+}
+
+
+.login-logo img {
+    display: block !important;
+
+    width: 125px !important;
+    height: 125px !important;
+
+    max-width: 125px !important;
+    max-height: 125px !important;
+
+    min-width: 0 !important;
+    min-height: 0 !important;
+
+    object-fit: contain !important;
+
+    margin: 0 auto !important;
+}
+
+
+/* =========================================
+   TÍTULO
+   ========================================= */
 
 .login-box h1 {
     text-align: center;
-    font-size: 28px;
+
+    font-size: 27px;
+
     color: #222;
-    margin-bottom: 8px;
+
+    margin-top: 3px;
+    margin-bottom: 7px;
 }
 
-.login-box > p {
+
+.subtitulo {
     text-align: center;
+
     color: #777;
+
     font-size: 15px;
-    margin-bottom: 35px;
+
+    margin-bottom: 30px;
 }
+
+
+/* =========================================
+   CAMPOS
+   ========================================= */
 
 .campo {
     margin-bottom: 20px;
 }
 
+
 .campo label {
     display: block;
+
     margin-bottom: 8px;
+
     font-size: 14px;
+
     font-weight: 600;
+
     color: #333;
 }
 
+
 .campo input {
     width: 100%;
-    height: 48px;
+
+    height: 49px;
+
     padding: 0 15px;
+
     border: 1px solid #d8d8d8;
+
     border-radius: 9px;
+
     outline: none;
+
+    background: #fff;
+
+    color: #222;
+
+    font-family: Arial, Helvetica, sans-serif;
+
     font-size: 15px;
-    transition: 0.2s;
+
+    transition: all 0.2s ease;
 }
+
+
+.campo input::placeholder {
+    color: #999;
+}
+
 
 .campo input:focus {
-    border-color: #222;
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+    border-color: #f7941d;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(247, 148, 29, 0.14);
 }
 
-button {
+
+/* =========================================
+   BOTÓN
+   ========================================= */
+
+.login-box button {
     width: 100%;
-    height: 48px;
-    margin-top: 5px;
+
+    height: 49px;
+
+    margin-top: 4px;
 
     border: none;
+
     border-radius: 9px;
 
-    background: #222;
-    color: white;
+    background: #f7941d;
+
+    color: #ffffff;
+
+    font-family: Arial, Helvetica, sans-serif;
 
     font-size: 15px;
-    font-weight: bold;
+
+    font-weight: 700;
+
     cursor: pointer;
 
-    transition: 0.2s;
+    transition: all 0.2s ease;
 }
 
-button:hover {
-    background: #3a3a3a;
+
+.login-box button:hover {
+    background: #e98212;
+
     transform: translateY(-1px);
+
+    box-shadow:
+        0 5px 12px
+        rgba(247, 148, 29, 0.25);
 }
+
+
+.login-box button:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================
+   MENSAJE DE ERROR
+   ========================================= */
 
 .mensaje-login {
     margin-bottom: 18px;
+
     padding: 12px 15px;
-    border-radius: 8px;
-    background: #ffe8e8;
+
+    border-radius: 9px;
+
+    background: #fff1f0;
+
     color: #b42318;
+
     font-size: 14px;
+
     text-align: center;
-    border: 1px solid #f5b5b5;
+
+    border: 1px solid #ffd0cc;
+}
+
+
+/* =========================================
+   COLORES DE LA TIENDA
+   ========================================= */
+
+.colores-login {
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+
+    gap: 6px;
+
+    margin-top: 25px;
+}
+
+
+.colores-login span {
+    width: 28px;
+    height: 4px;
+
+    border-radius: 10px;
+
+    display: block;
+}
+
+
+.color-naranja {
+    background: #f7941d;
+}
+
+
+.color-azul {
+    background: #249db5;
+}
+
+
+.color-rojo {
+    background: #d93662;
+}
+
+
+.color-amarillo {
+    background: #f9c52b;
+}
+
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+
+@media (max-width: 500px) {
+
+    .login-container {
+        padding: 15px;
+    }
+
+
+    .login-box {
+        padding: 25px 25px 27px;
+
+        border-radius: 17px;
+    }
+
+
+    .login-logo {
+        height: 125px;
+    }
+
+
+    .login-logo img {
+        width: 105px !important;
+        height: 105px !important;
+
+        max-width: 105px !important;
+        max-height: 105px !important;
+    }
+
+
+    .login-box h1 {
+        font-size: 23px;
+    }
+
+
+    .subtitulo {
+        margin-bottom: 25px;
+    }
+
 }

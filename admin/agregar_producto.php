@@ -20,21 +20,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stock = $_POST["stock"];
 
     if (
-        $nombre != "" &&
-        $categoria != "" &&
-        $precio_compra >= 0 &&
-        $precio_venta >= 0 &&
-        $stock >= 0
-    ) {
+    $nombre != "" &&
+    $categoria != "" &&
+    $precio_compra >= 0 &&
+    $precio_venta >= 0 &&
+    $stock >= 0
+) {
 
-        $sql = "INSERT INTO productos 
-                (nombre, categoria, precio_compra, precio_venta, stock)
-                VALUES (?, ?, ?, ?, ?)";
+    /* Generar código único */
+
+    $resultado_codigo = $conexion->query(
+        "SELECT MAX(id) AS ultimo_id FROM productos"
+    );
+
+    $fila_codigo = $resultado_codigo->fetch_assoc();
+
+    $siguiente_id = intval($fila_codigo["ultimo_id"]) + 1;
+
+    $codigo = "CHG-" . str_pad(
+        $siguiente_id,
+        6,
+        "0",
+        STR_PAD_LEFT
+    );
+
+
+    $sql = "INSERT INTO productos 
+            (codigo, nombre, categoria, precio_compra, precio_venta, stock)
+            VALUES (?, ?, ?, ?, ?, ?)";
 
         $stmt = $conexion->prepare($sql);
 
         $stmt->bind_param(
-            "ssddi",
+            "sssddi",
+            $codigo,
             $nombre,
             $categoria,
             $precio_compra,

@@ -15,6 +15,7 @@ if (isset($_GET["error"])) {
     } elseif ($_GET["error"] === "1") {
 
         $mensaje = "❌ Usuario o contraseña incorrectos.";
+
     }
 }
 
@@ -24,66 +25,142 @@ if (isset($_GET["error"])) {
 <html lang="es">
 
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Iniciar sesión | Changarro Súper y Más</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <link rel="stylesheet" href="css/estilos.css">
+    <title>
+        Iniciar sesión | Changarro Súper y Más
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="css/estilos.css"
+    >
+
 </head>
 
 <body>
 
-    <div class="login-container">
+<div class="login-container">
 
-        <div class="login-box">
+    <div class="login-box">
 
-            <h1>Changarro Súper y Más</h1>
-            <p>Panel de Administración</p>
 
-            <form action="login.php" method="POST">
+        <!-- LOGO -->
+
+        <div class="login-logo">
+
+            <img
+                src="img/logo_changarro_transparente.png"
+                alt="El Changarro"
+            >
+
+        </div>
+
+
+        <!-- NOMBRE DE LA TIENDA -->
+
+        <h1>
+            Changarro Súper y Más
+        </h1>
+
+
+        <!-- FORMULARIO -->
+
+        <form
+            action="login.php"
+            method="POST"
+        >
+
 
             <?php if ($mensaje !== ""): ?>
 
                 <div class="mensaje-login">
-                    <?php echo htmlspecialchars($mensaje); ?>
+
+                    <?php
+
+                    echo htmlspecialchars($mensaje);
+
+                    ?>
+
                 </div>
 
             <?php endif; ?>
 
-                <div class="campo">
-                    <label for="usuario">Usuario</label>
 
-                    <input
-                        type="text"
-                        id="usuario"
-                        name="usuario"
-                        placeholder="Ingresa tu usuario"
-                        required
-                    >
-                </div>
+            <!-- USUARIO -->
 
-                <div class="campo">
-                    <label for="contrasena">Contraseña</label>
+            <div class="campo">
 
-                    <input
-                        type="password"
-                        id="contrasena"
-                        name="contrasena"
-                        placeholder="Ingresa tu contraseña"
-                        required
-                    >
-                </div>
+                <label for="usuario">
+                    Usuario
+                </label>
 
-                <button type="submit">
-                    Iniciar sesión
-                </button>
+                <input
+                    type="text"
+                    id="usuario"
+                    name="usuario"
+                    placeholder="Ingresa tu usuario"
+                    autocomplete="username"
+                    required
+                >
 
-            </form>
+            </div>
+
+
+            <!-- CONTRASEÑA -->
+
+            <div class="campo">
+
+                <label for="contrasena">
+                    Contraseña
+                </label>
+
+                <input
+                    type="password"
+                    id="contrasena"
+                    name="contrasena"
+                    placeholder="Ingresa tu contraseña"
+                    autocomplete="current-password"
+                    required
+                >
+
+            </div>
+
+
+            <!-- BOTÓN -->
+
+            <button type="submit">
+                Iniciar sesión
+            </button>
+
+
+        </form>
+
+
+        <!-- COLORES DE LA TIENDA -->
+
+        <div class="colores-login">
+
+            <span class="color-naranja"></span>
+
+            <span class="color-azul"></span>
+
+            <span class="color-rojo"></span>
+
+            <span class="color-amarillo"></span>
 
         </div>
 
+
     </div>
+
+</div>
 
 </body>
 
