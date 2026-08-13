@@ -1,49 +1,81 @@
 <?php
 
-session_start();
-
-if (!isset($_SESSION["id"])) {
-    header("Location: ../login.php");
-    exit();
-}
-
+require_once "verificar_acceso.php";
 require_once "../config/conexion.php";
 
-if (!isset($_GET["id"]) || !is_numeric($_GET["id"])) {
+
+/* =========================================
+   VALIDAR ID DEL PEDIDO
+   ========================================= */
+
+if (
+    !isset($_GET["id"]) ||
+    !is_numeric($_GET["id"])
+) {
+
     header("Location: ventas.php");
     exit();
+
 }
 
-$venta_id = intval($_GET["id"]);
+$pedido_id = intval($_GET["id"]);
 
 
-/* Información de la venta */
+/* =========================================
+   OBTENER INFORMACIÓN DEL PEDIDO
+   ========================================= */
 
-$sql_venta = "
+$sql_pedido = "
     SELECT
         ventas.id,
         ventas.total,
         ventas.metodo_pago,
-        ventas.efectivo_recibido,
         ventas.fecha,
         ventas.estado,
-        usuarios.nombre AS usuario_nombre
+        usuarios.nombre AS cliente_nombre,
+        usuarios.usuario AS cliente_usuario
     FROM ventas
+
     LEFT JOIN usuarios
         ON ventas.usuario_id = usuarios.id
-    WHERE ventas.id = $venta_id
+
+    WHERE ventas.id = ?
 ";
 
-$resultado_venta = $conexion->query($sql_venta);
 
-if ($resultado_venta->num_rows === 0) {
-    die("La venta no existe.");
+$stmt_pedido =
+    $conexion->prepare($sql_pedido);
+
+
+$stmt_pedido->bind_param(
+    "i",
+    $pedido_id
+);
+
+
+$stmt_pedido->execute();
+
+
+$resultado_pedido =
+    $stmt_pedido->get_result();
+
+
+if (
+    $resultado_pedido->num_rows !== 1
+) {
+
+    die("El pedido no existe.");
+
 }
 
-$venta = $resultado_venta->fetch_assoc();
+
+$pedido =
+    $resultado_pedido->fetch_assoc();
 
 
-/* Productos vendidos */
+/* =========================================
+   OBTENER PRODUCTOS DEL PEDIDO
+   ========================================= */
 
 $sql_detalle = "
     SELECT
@@ -52,28 +84,50 @@ $sql_detalle = "
         detalle_venta.subtotal,
         productos.nombre
     FROM detalle_venta
+
     INNER JOIN productos
         ON detalle_venta.producto_id = productos.id
-    WHERE detalle_venta.venta_id = $venta_id
+
+    WHERE detalle_venta.venta_id = ?
+
+    ORDER BY detalle_venta.id ASC
 ";
 
-$resultado_detalle = $conexion->query($sql_detalle);
+
+$stmt_detalle =
+    $conexion->prepare($sql_detalle);
 
 
-/* Calcular cambio */
+$stmt_detalle->bind_param(
+    "i",
+    $pedido_id
+);
 
-$cambio = 0;
 
-if ($venta["metodo_pago"] === "Efectivo") {
+$stmt_detalle->execute();
 
-    $cambio =
-        $venta["efectivo_recibido"] -
-        $venta["total"];
-}
+
+$resultado_detalle =
+    $stmt_detalle->get_result();
+
+
+/* =========================================
+   INICIAL DEL USUARIO ADMIN
+   ========================================= */
+
+$inicial =
+    strtoupper(
+        substr(
+            $_SESSION["nombre"],
+            0,
+            1
+        )
+    );
 
 ?>
 
 <!DOCTYPE html>
+
 <html lang="es">
 
 <head>
@@ -86,185 +140,536 @@ if ($venta["metodo_pago"] === "Efectivo") {
     >
 
     <title>
-        Venta #<?php echo $venta["id"]; ?>
+
+        Pedido #
+
+        <?php
+
+        echo $pedido["id"];
+
+        ?>
+
+        | Changarro Súper y Más
+
     </title>
+
 
     <link
         rel="stylesheet"
         href="../css/dashboard.css"
     >
 
+
     <style>
 
-        .ticket-contenedor {
-            max-width: 500px;
+        /* =====================================
+           CONTENEDOR
+           ===================================== */
+
+        .pedido-contenedor {
+
+            max-width: 850px;
+
             margin: 0 auto;
+
         }
 
-        .ticket {
+
+        /* =====================================
+           ENCABEZADO DEL PEDIDO
+           ===================================== */
+
+        .pedido-header {
+
             background: white;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 3px 12px rgba(0,0,0,.05);
-        }
 
-        .ticket-encabezado {
-            text-align: center;
-            border-bottom: 1px dashed #ccc;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
-        }
+            border: 1px solid #e5e5e5;
 
-        .ticket-encabezado h2 {
-            margin: 0;
-            font-size: 24px;
-        }
+            border-radius: 14px;
 
-        .ticket-encabezado p {
-            margin: 5px 0;
-            color: #777;
-            font-size: 13px;
-        }
+            padding: 25px;
 
-        .ticket-info {
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
+            margin-bottom: 18px;
 
-        .ticket-tabla {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .ticket-tabla th {
-            text-align: left;
-            padding: 8px 0;
-            border-bottom: 1px solid #ddd;
-            font-size: 13px;
-        }
-
-        .ticket-tabla td {
-            padding: 9px 0;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-
-        .ticket-tabla .derecha {
-            text-align: right;
-        }
-
-        .ticket-total {
-            border-top: 2px solid #222;
-            margin-top: 15px;
-            padding-top: 15px;
-            text-align: right;
-            font-size: 22px;
-            font-weight: 700;
-        }
-
-        .ticket-pago {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px dashed #ccc;
-            font-size: 14px;
-        }
-
-        .ticket-pago div {
             display: flex;
+
             justify-content: space-between;
-            margin-bottom: 7px;
+
+            align-items: flex-start;
+
+            gap: 20px;
+
         }
 
-        .ticket-final {
-            text-align: center;
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px dashed #ccc;
+
+        .pedido-header h2 {
+
+            margin: 0 0 7px 0;
+
+            font-size: 23px;
+
+        }
+
+
+        .pedido-header p {
+
+            margin: 4px 0;
+
             color: #777;
+
             font-size: 13px;
+
         }
 
-        .ticket-acciones {
+
+        /* =====================================
+           ESTADOS
+           ===================================== */
+
+        .estado {
+
+            display: inline-block;
+
+            padding: 7px 12px;
+
+            border-radius: 20px;
+
+            font-size: 12px;
+
+            font-weight: 700;
+
+        }
+
+
+        .estado-pagada {
+
+            background: #e8f8ef;
+
+            color: #16834a;
+
+        }
+
+
+        .estado-pendiente {
+
+            background: #fff5dc;
+
+            color: #b87500;
+
+        }
+
+
+        .estado-cancelada {
+
+            background: #ffe8e8;
+
+            color: #c62828;
+
+        }
+
+
+        /* =====================================
+           INFORMACIÓN DEL CLIENTE
+           ===================================== */
+
+        .cliente-card {
+
+            background: white;
+
+            border: 1px solid #e5e5e5;
+
+            border-radius: 14px;
+
+            padding: 22px;
+
+            margin-bottom: 18px;
+
+        }
+
+
+        .cliente-card h3 {
+
+            margin: 0 0 15px 0;
+
+            font-size: 17px;
+
+        }
+
+
+        .cliente-datos {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 15px;
+
+        }
+
+
+        .dato {
+
+            background: #f8f8f8;
+
+            border-radius: 9px;
+
+            padding: 13px;
+
+        }
+
+
+        .dato span {
+
+            display: block;
+
+            color: #888;
+
+            font-size: 11px;
+
+            margin-bottom: 4px;
+
+        }
+
+
+        .dato strong {
+
+            font-size: 13px;
+
+        }
+
+
+        /* =====================================
+           PRODUCTOS
+           ===================================== */
+
+        .productos-card {
+
+            background: white;
+
+            border: 1px solid #e5e5e5;
+
+            border-radius: 14px;
+
+            padding: 22px;
+
+        }
+
+
+        .productos-card h3 {
+
+            margin: 0 0 18px 0;
+
+            font-size: 17px;
+
+        }
+
+
+        .tabla-pedido {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+        }
+
+
+        .tabla-pedido th {
+
+            padding: 11px 8px;
+
+            text-align: left;
+
+            border-bottom: 1px solid #ddd;
+
+            color: #777;
+
+            font-size: 12px;
+
+        }
+
+
+        .tabla-pedido td {
+
+            padding: 14px 8px;
+
+            border-bottom: 1px solid #eee;
+
+            font-size: 13px;
+
+        }
+
+
+        .tabla-pedido .derecha {
+
+            text-align: right;
+
+        }
+
+
+        .tabla-pedido .centro {
+
+            text-align: center;
+
+        }
+
+
+        /* =====================================
+           TOTAL
+           ===================================== */
+
+        .pedido-total {
+
             display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
+
+            justify-content: flex-end;
+
+            align-items: center;
+
+            gap: 25px;
+
+            padding-top: 20px;
+
         }
 
-        .btn-imprimir,
-        .btn-regresar {
-            padding: 11px 18px;
-            border-radius: 8px;
-            text-decoration: none;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
+
+        .pedido-total span {
+
+            color: #777;
+
+            font-size: 14px;
+
         }
+
+
+        .pedido-total strong {
+
+            font-size: 25px;
+
+            color: #f7941d;
+
+        }
+
+
+        /* =====================================
+           PAGO
+           ===================================== */
+
+        .pago-card {
+
+            margin-top: 18px;
+
+            background: #f8fafb;
+
+            border: 1px solid #e7eaec;
+
+            border-radius: 10px;
+
+            padding: 15px;
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+        }
+
+
+        .pago-card span {
+
+            color: #777;
+
+            font-size: 12px;
+
+        }
+
+
+        .pago-card strong {
+
+            font-size: 13px;
+
+        }
+
+
+        /* =====================================
+           ACCIONES
+           ===================================== */
+
+        .acciones-pedido {
+
+            display: flex;
+
+            justify-content: center;
+
+            flex-wrap: wrap;
+
+            gap: 10px;
+
+            margin-top: 20px;
+
+        }
+
+
+        .btn {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 11px 18px;
+
+            border-radius: 8px;
+
+            text-decoration: none;
+
+            border: none;
+
+            cursor: pointer;
+
+            font-size: 13px;
+
+            font-weight: 600;
+
+        }
+
 
         .btn-imprimir {
+
             background: #222;
+
             color: white;
+
         }
+
 
         .btn-regresar {
-            background: #eee;
+
+            background: #eeeeee;
+
             color: #222;
+
         }
 
 
-        /* =========================
+        .btn-cancelar {
+
+            background: #ffe8e8;
+
+            color: #c62828;
+
+        }
+
+
+        .btn-cancelar:hover {
+
+            background: #ffd7d7;
+
+        }
+
+
+        .pedido-cancelado {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            padding: 11px 18px;
+
+            border-radius: 8px;
+
+            background: #ffe8e8;
+
+            color: #c62828;
+
+            font-weight: 700;
+
+            font-size: 13px;
+
+        }
+
+
+        /* =====================================
            IMPRESIÓN
-           ========================= */
+           ===================================== */
 
         @media print {
 
             body {
+
                 background: white;
+
             }
+
 
             .sidebar,
             .encabezado,
-            .ticket-acciones {
+            .acciones-pedido {
+
                 display: none !important;
+
             }
+
 
             .contenido {
+
                 margin: 0;
+
                 padding: 0;
+
             }
 
-            .ticket-contenedor {
+
+            .pedido-contenedor {
+
                 max-width: 100%;
+
             }
 
-            .ticket {
+
+            .pedido-header,
+            .cliente-card,
+            .productos-card {
+
                 border: none;
+
                 box-shadow: none;
-                padding: 0;
+
             }
 
         }
-        .btn-cancelar-venta {
-            padding: 11px 18px;
-            border-radius: 8px;
-            text-decoration: none;
-            background: #ffe8e8;
-            color: #c62828;
-            font-weight: 600;
+
+
+        /* =====================================
+           RESPONSIVE
+           ===================================== */
+
+        @media (max-width: 650px) {
+
+            .pedido-header {
+
+                flex-direction: column;
+
+            }
+
+
+            .cliente-datos {
+
+                grid-template-columns: 1fr;
+
+            }
+
+
+            .pedido-total {
+
+                justify-content: space-between;
+
+            }
+
         }
 
-        .btn-cancelar-venta:hover {
-            background: #ffd6d6;
-        }
-
-        .venta-cancelada {
-            padding: 11px 18px;
-            border-radius: 8px;
-            background: #ffe8e8;
-            color: #c62828;
-            font-weight: 700;
-        }
     </style>
 
 </head>
@@ -272,232 +677,94 @@ if ($venta["metodo_pago"] === "Efectivo") {
 
 <body>
 
+
 <div class="admin-layout">
+
+
+    <!-- =====================================
+         SIDEBAR
+         ===================================== -->
 
     <?php include "../includes/sidebar.php"; ?>
 
 
+    <!-- =====================================
+         CONTENIDO
+         ===================================== -->
+
     <main class="contenido">
 
-        <div class="encabezado">
+
+        <!-- =================================
+             ENCABEZADO
+             ================================= -->
+
+        <header class="encabezado">
+
 
             <div>
 
-                <h1>Comprobante de venta</h1>
+                <h1>
 
-                
-                <p>
-                    Venta #<?php echo $venta["id"]; ?>
-                </p>
+                    Detalle del pedido
 
-                <p>
-                    Realizada por:
-                    <strong>
-                        <?php
-                        echo htmlspecialchars(
-                            $venta["usuario_nombre"] ?? "Usuario no disponible"
-                        );
-                        ?>
-                    </strong>
-                </p>
+                </h1>
+
 
                 <p>
-                    Estado:
 
-                    <strong>
-                        <?php echo htmlspecialchars($venta["estado"]); ?>
-                    </strong>
+                    Consulta la información
+                    de la compra realizada en línea.
+
                 </p>
+
             </div>
 
-        </div>
+
+            <!-- PERFIL -->
+
+            <div class="perfil">
 
 
-        <div class="ticket-contenedor">
+                <div class="avatar">
 
-            <div class="ticket">
-
-
-                <!-- ENCABEZADO DEL TICKET -->
-
-                <div class="ticket-encabezado">
-
-                    <h2>
-                        CHANGARRO
-                    </h2>
-
-                    <p>
-                        SÚPER Y MÁS
-                    </p>
-
-                    <p>
-                        Venta #<?php echo $venta["id"]; ?>
-                    </p>
-
-                    <p>
-                        <?php echo $venta["fecha"]; ?>
-                    </p>
-
-                </div>
-
-
-                <!-- PRODUCTOS -->
-
-                <table class="ticket-tabla">
-
-                    <thead>
-
-                        <tr>
-
-                            <th>
-                                Producto
-                            </th>
-
-                            <th>
-                                Cant.
-                            </th>
-
-                            <th class="derecha">
-                                Subtotal
-                            </th>
-
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody>
-
-                    <?php while (
-                        $detalle =
-                        $resultado_detalle->fetch_assoc()
-                    ): ?>
-
-                        <tr>
-
-                            <td>
-                                <?php
-                                echo htmlspecialchars(
-                                    $detalle["nombre"]
-                                );
-                                ?>
-                            </td>
-
-                            <td>
-                                <?php
-                                echo $detalle["cantidad"];
-                                ?>
-                            </td>
-
-                            <td class="derecha">
-
-                                $
-                                <?php
-                                echo number_format(
-                                    $detalle["subtotal"],
-                                    2
-                                );
-                                ?>
-
-                            </td>
-
-                        </tr>
-
-                    <?php endwhile; ?>
-
-                    </tbody>
-
-                </table>
-
-
-                <!-- TOTAL -->
-
-                <div class="ticket-total">
-
-                    Total:
-                    $
                     <?php
-                    echo number_format(
-                        $venta["total"],
-                        2
+
+                    echo htmlspecialchars(
+                        $inicial
                     );
+
                     ?>
 
                 </div>
 
 
-                <!-- PAGO -->
+                <div>
 
-                <div class="ticket-pago">
+                    <strong>
 
-                    <div>
+                        <?php
 
-                        <span>
-                            Método de pago
-                        </span>
+                        echo htmlspecialchars(
+                            $_SESSION["nombre"]
+                        );
 
-                        <strong>
-                            <?php
-                            echo htmlspecialchars(
-                                $venta["metodo_pago"]
-                            );
-                            ?>
-                        </strong>
+                        ?>
 
-                    </div>
+                    </strong>
 
 
-                    <?php if (
-                        $venta["metodo_pago"] === "Efectivo"
-                    ): ?>
+                    <span>
 
-                        <div>
+                        <?php
 
-                            <span>
-                                Recibido
-                            </span>
+                        echo htmlspecialchars(
+                            $_SESSION["rol"]
+                        );
 
-                            <strong>
-                                $
-                                <?php
-                                echo number_format(
-                                    $venta["efectivo_recibido"],
-                                    2
-                                );
-                                ?>
-                            </strong>
+                        ?>
 
-                        </div>
-
-
-                        <div>
-
-                            <span>
-                                Cambio
-                            </span>
-
-                            <strong>
-                                $
-                                <?php
-                                echo number_format(
-                                    $cambio,
-                                    2
-                                );
-                                ?>
-                            </strong>
-
-                        </div>
-
-                    <?php endif; ?>
-
-                </div>
-
-
-                <!-- MENSAJE FINAL -->
-
-                <div class="ticket-final">
-
-                    ¡Gracias por su compra!
+                    </span>
 
                 </div>
 
@@ -505,50 +772,538 @@ if ($venta["metodo_pago"] === "Efectivo") {
             </div>
 
 
-            <!-- BOTONES -->
+        </header>
 
-            <div class="ticket-acciones">
+
+        <!-- =================================
+             PEDIDO
+             ================================= -->
+
+        <div class="pedido-contenedor">
+
+
+            <!-- =================================
+                 INFORMACIÓN GENERAL
+                 ================================= -->
+
+            <section class="pedido-header">
+
+
+                <div>
+
+                    <h2>
+
+                        Pedido #
+
+                        <?php
+
+                        echo intval(
+                            $pedido["id"]
+                        );
+
+                        ?>
+
+                    </h2>
+
+
+                    <p>
+
+                        Fecha:
+
+                        <strong>
+
+                            <?php
+
+                            echo date(
+                                "d/m/Y H:i",
+                                strtotime(
+                                    $pedido["fecha"]
+                                )
+                            );
+
+                            ?>
+
+                        </strong>
+
+                    </p>
+
+
+                    <p>
+
+                        Compra realizada
+                        desde la tienda en línea.
+
+                    </p>
+
+                </div>
+
+
+                <div>
+
+
+                    <?php
+
+                    if (
+                        $pedido["estado"]
+                        === "Cancelada"
+                    ) {
+
+                        $clase_estado =
+                            "estado-cancelada";
+
+                        $texto_estado =
+                            "Cancelada";
+
+                    } elseif (
+                        $pedido["estado"]
+                        === "Pendiente"
+                    ) {
+
+                        $clase_estado =
+                            "estado-pendiente";
+
+                        $texto_estado =
+                            "Pendiente";
+
+                    } else {
+
+                        $clase_estado =
+                            "estado-pagada";
+
+                        $texto_estado =
+                            "Pagada";
+
+                    }
+
+                    ?>
+
+
+                    <span
+                        class="estado <?php echo $clase_estado; ?>"
+                    >
+
+                        ●
+
+                        <?php
+
+                        echo $texto_estado;
+
+                        ?>
+
+                    </span>
+
+
+                </div>
+
+
+            </section>
+
+
+            <!-- =================================
+                 CLIENTE
+                 ================================= -->
+
+            <section class="cliente-card">
+
+
+                <h3>
+
+                    Información del cliente
+
+                </h3>
+
+
+                <div class="cliente-datos">
+
+
+                    <div class="dato">
+
+
+                        <span>
+
+                            Nombre
+
+                        </span>
+
+
+                        <strong>
+
+                            <?php
+
+                            echo htmlspecialchars(
+                                $pedido[
+                                    "cliente_nombre"
+                                ]
+                                ??
+                                "No disponible"
+                            );
+
+                            ?>
+
+                        </strong>
+
+
+                    </div>
+
+
+                    <div class="dato">
+
+
+                        <span>
+
+                            Usuario
+
+                        </span>
+
+
+                        <strong>
+
+                            @
+
+                            <?php
+
+                            echo htmlspecialchars(
+                                $pedido[
+                                    "cliente_usuario"
+                                ]
+                                ??
+                                "No disponible"
+                            );
+
+                            ?>
+
+                        </strong>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </section>
+
+
+            <!-- =================================
+                 PRODUCTOS
+                 ================================= -->
+
+            <section class="productos-card">
+
+
+                <h3>
+
+                    Productos del pedido
+
+                </h3>
+
+
+                <div
+                    style="
+                        overflow-x:auto;
+                    "
+                >
+
+
+                    <table
+                        class="tabla-pedido"
+                    >
+
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+
+                                    Producto
+
+                                </th>
+
+
+                                <th class="centro">
+
+                                    Cantidad
+
+                                </th>
+
+
+                                <th class="derecha">
+
+                                    Precio
+
+                                </th>
+
+
+                                <th class="derecha">
+
+                                    Subtotal
+
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+
+                        <?php if (
+                            $resultado_detalle &&
+                            $resultado_detalle->num_rows > 0
+                        ): ?>
+
+
+                            <?php while (
+                                $detalle =
+                                $resultado_detalle
+                                ->fetch_assoc()
+                            ): ?>
+
+
+                                <tr>
+
+
+                                    <td>
+
+                                        <strong>
+
+                                            <?php
+
+                                            echo htmlspecialchars(
+                                                $detalle["nombre"]
+                                            );
+
+                                            ?>
+
+                                        </strong>
+
+                                    </td>
+
+
+                                    <td
+                                        class="centro"
+                                    >
+
+                                        <?php
+
+                                        echo intval(
+                                            $detalle["cantidad"]
+                                        );
+
+                                        ?>
+
+                                    </td>
+
+
+                                    <td
+                                        class="derecha"
+                                    >
+
+                                        $
+
+                                        <?php
+
+                                        echo number_format(
+                                            $detalle["precio"],
+                                            2
+                                        );
+
+                                        ?>
+
+                                    </td>
+
+
+                                    <td
+                                        class="derecha"
+                                    >
+
+                                        $
+
+                                        <?php
+
+                                        echo number_format(
+                                            $detalle["subtotal"],
+                                            2
+                                        );
+
+                                        ?>
+
+                                    </td>
+
+
+                                </tr>
+
+
+                            <?php endwhile; ?>
+
+
+                        <?php else: ?>
+
+
+                            <tr>
+
+                                <td
+                                    colspan="4"
+                                    style="
+                                        text-align:center;
+                                        color:#888;
+                                        padding:30px;
+                                    "
+                                >
+
+                                    Este pedido no tiene
+                                    productos registrados.
+
+                                </td>
+
+                            </tr>
+
+
+                        <?php endif; ?>
+
+
+                        </tbody>
+
+
+                    </table>
+
+
+                </div>
+
+
+                <!-- TOTAL -->
+
+                <div class="pedido-total">
+
+
+                    <span>
+
+                        Total del pedido
+
+                    </span>
+
+
+                    <strong>
+
+                        $
+
+                        <?php
+
+                        echo number_format(
+                            $pedido["total"],
+                            2
+                        );
+
+                        ?>
+
+                    </strong>
+
+
+                </div>
+
+
+                <!-- MÉTODO DE PAGO -->
+
+                <div class="pago-card">
+
+
+                    <span>
+
+                        Método de pago
+
+                    </span>
+
+
+                    <strong>
+
+                        💳 Tarjeta
+
+                    </strong>
+
+
+                </div>
+
+
+            </section>
+
+
+            <!-- =================================
+                 ACCIONES
+                 ================================= -->
+
+            <div class="acciones-pedido">
+
 
                 <button
-                    class="btn-imprimir"
+                    type="button"
+                    class="btn btn-imprimir"
                     onclick="window.print()"
                 >
-                    🖨 Imprimir ticket
+
+                    🖨 Imprimir pedido
+
                 </button>
 
-                <?php if ($venta["estado"] === "Completada"): ?>
+
+                <?php if (
+                    $pedido["estado"] !==
+                    "Cancelada"
+                ): ?>
+
 
                     <a
-                        href="cancelar_venta.php?id=<?php echo $venta["id"]; ?>"
-                        class="btn-cancelar-venta"
-                        onclick="return confirm('¿Seguro que deseas cancelar esta venta? El stock será devuelto al inventario.');"
+                        href="cancelar_venta.php?id=<?php echo intval($pedido["id"]); ?>"
+                        class="btn btn-cancelar"
+                        onclick="
+                            return confirm(
+                                '¿Seguro que deseas cancelar este pedido? El stock será devuelto al inventario.'
+                            );
+                        "
                     >
-                        ✕ Cancelar venta
+
+                        ✕ Cancelar pedido
+
                     </a>
+
 
                 <?php else: ?>
 
-                    <span class="venta-cancelada">
-                        Venta cancelada
+
+                    <span
+                        class="pedido-cancelado"
+                    >
+
+                        Pedido cancelado
+
                     </span>
+
 
                 <?php endif; ?>
 
 
                 <a
                     href="ventas.php"
-                    class="btn-regresar"
+                    class="btn btn-regresar"
                 >
-                    ← Volver a ventas
+
+                    ← Volver a pedidos
+
                 </a>
+
 
             </div>
 
+
         </div>
+
 
     </main>
 
+
 </div>
+
 
 </body>
 

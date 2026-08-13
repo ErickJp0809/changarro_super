@@ -28,7 +28,9 @@ $pagina_actual = basename($_SERVER["PHP_SELF"]);
     <nav class="menu">
 
 
-        <!-- INICIO -->
+        <!-- =====================================
+             INICIO
+             ===================================== -->
 
         <a
             href="dashboard.php"
@@ -42,7 +44,9 @@ $pagina_actual = basename($_SERVER["PHP_SELF"]);
         </a>
 
 
-        <!-- PRODUCTOS -->
+        <!-- =====================================
+             PRODUCTOS
+             ===================================== -->
 
         <a
             href="productos.php"
@@ -56,7 +60,9 @@ $pagina_actual = basename($_SERVER["PHP_SELF"]);
         </a>
 
 
-        <!-- INVENTARIO -->
+        <!-- =====================================
+             INVENTARIO
+             ===================================== -->
 
         <a
             href="inventario.php"
@@ -70,7 +76,9 @@ $pagina_actual = basename($_SERVER["PHP_SELF"]);
         </a>
 
 
-        <!-- VENTAS -->
+        <!-- =====================================
+             VENTAS
+             ===================================== -->
 
         <a
             href="ventas.php"
@@ -84,7 +92,41 @@ $pagina_actual = basename($_SERVER["PHP_SELF"]);
         </a>
 
 
-        <!-- USUARIOS -->
+        <!-- =====================================
+             PEDIDOS
+             ===================================== -->
+
+        <a
+            href="pedidos.php"
+            class="<?php echo ($pagina_actual == "pedidos.php") ? "activo" : ""; ?>"
+        >
+
+            <span>📦</span>
+
+            Pedidos
+
+        </a>
+
+
+        <!-- =====================================
+             ESTADÍSTICAS
+             ===================================== -->
+
+        <a
+            href="estadisticas.php"
+            class="<?php echo ($pagina_actual == "estadisticas.php") ? "activo" : ""; ?>"
+        >
+
+            <span>📊</span>
+
+            Estadísticas
+
+        </a>
+
+
+        <!-- =====================================
+             USUARIOS
+             ===================================== -->
 
         <?php if (
             isset($_SESSION["rol"]) &&

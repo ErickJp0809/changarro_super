@@ -2,10 +2,19 @@
 
 session_start();
 
+
+/* =========================================
+   VERIFICAR SESIÓN
+   ========================================= */
+
 if (!isset($_SESSION["id"])) {
+
     header("Location: ../index.php");
+
     exit();
+
 }
+
 
 require_once "../config/conexion.php";
 
@@ -15,25 +24,37 @@ require_once "../config/conexion.php";
    ===================================================== */
 
 $sql_ventas_hoy = "
+
     SELECT
         COUNT(*) AS cantidad,
         COALESCE(SUM(total), 0) AS total
+
     FROM ventas
+
     WHERE DATE(fecha) = CURDATE()
-    AND estado = 'Completada'
+
+    AND estado != 'Cancelada'
+
 ";
 
+
 $resultado_ventas_hoy =
-    $conexion->query($sql_ventas_hoy);
+    $conexion->query(
+        $sql_ventas_hoy
+    );
+
 
 $ventas_hoy =
     $resultado_ventas_hoy->fetch_assoc();
 
+
 $dinero_ventas_hoy =
     $ventas_hoy["total"];
 
+
 $total_ventas_hoy =
     $ventas_hoy["cantidad"];
+
 
 
 /* =====================================================
@@ -41,26 +62,39 @@ $total_ventas_hoy =
    ===================================================== */
 
 $sql_ventas_mes = "
+
     SELECT
         COUNT(*) AS cantidad,
         COALESCE(SUM(total), 0) AS total
+
     FROM ventas
+
     WHERE MONTH(fecha) = MONTH(CURDATE())
+
     AND YEAR(fecha) = YEAR(CURDATE())
-    AND estado = 'Completada'
+
+    AND estado != 'Cancelada'
+
 ";
 
+
 $resultado_ventas_mes =
-    $conexion->query($sql_ventas_mes);
+    $conexion->query(
+        $sql_ventas_mes
+    );
+
 
 $ventas_mes =
     $resultado_ventas_mes->fetch_assoc();
 
+
 $dinero_ventas_mes =
     $ventas_mes["total"];
 
+
 $total_ventas_mes =
     $ventas_mes["cantidad"];
+
 
 
 /* =====================================================
@@ -68,35 +102,76 @@ $total_ventas_mes =
    ===================================================== */
 
 $sql_ganancia_mes = "
+
     SELECT
+
         COALESCE(
+
             SUM(
-                detalle_venta.subtotal -
+
+                detalle_venta.subtotal
+
+                -
+
                 (
-                    detalle_venta.cantidad *
+                    detalle_venta.cantidad
+                    *
                     productos.precio_compra
                 )
+
             ),
+
             0
+
         ) AS ganancia
+
     FROM detalle_venta
 
+
     INNER JOIN ventas
-        ON detalle_venta.venta_id = ventas.id
+
+        ON detalle_venta.venta_id =
+           ventas.id
+
 
     INNER JOIN productos
-        ON detalle_venta.producto_id = productos.id
 
-    WHERE MONTH(ventas.fecha) = MONTH(CURDATE())
-    AND YEAR(ventas.fecha) = YEAR(CURDATE())
-    AND ventas.estado = 'Completada'
+        ON detalle_venta.producto_id =
+           productos.id
+
+
+    WHERE MONTH(ventas.fecha) =
+          MONTH(CURDATE())
+
+
+    AND YEAR(ventas.fecha) =
+        YEAR(CURDATE())
+
+
+    AND ventas.estado != 'Cancelada'
+
 ";
 
-$resultado_ganancia_mes =
-    $conexion->query($sql_ganancia_mes);
 
-$ganancia_mes =
-    $resultado_ganancia_mes->fetch_assoc()["ganancia"];
+$resultado_ganancia_mes =
+    $conexion->query(
+        $sql_ganancia_mes
+    );
+
+
+$ganancia_mes = 0;
+
+
+if ($resultado_ganancia_mes) {
+
+    $fila_ganancia =
+        $resultado_ganancia_mes->fetch_assoc();
+
+    $ganancia_mes =
+        $fila_ganancia["ganancia"] ?? 0;
+
+}
+
 
 
 /* =====================================================
@@ -105,50 +180,86 @@ $ganancia_mes =
 
 $ventas_grafica = [];
 
-for ($i = 6; $i >= 0; $i--) {
+
+for (
+    $i = 6;
+    $i >= 0;
+    $i--
+) {
 
     $fecha = date(
         "Y-m-d",
         strtotime("-$i days")
     );
 
+
     $ventas_grafica[$fecha] = 0;
+
 }
 
 
+
+/* =========================================
+   CONSULTAR VENTAS
+   ========================================= */
+
 $sql_grafica = "
+
     SELECT
+
         DATE(fecha) AS dia,
-        COALESCE(SUM(total), 0) AS total
+
+        COALESCE(
+            SUM(total),
+            0
+        ) AS total
+
     FROM ventas
-    WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-    AND estado = 'Completada'
+
+    WHERE fecha >=
+          DATE_SUB(
+              CURDATE(),
+              INTERVAL 6 DAY
+          )
+
+    AND estado != 'Cancelada'
+
     GROUP BY DATE(fecha)
+
     ORDER BY dia ASC
+
 ";
 
+
 $resultado_grafica =
-    $conexion->query($sql_grafica);
+    $conexion->query(
+        $sql_grafica
+    );
 
 
-while (
-    $venta_grafica =
-    $resultado_grafica->fetch_assoc()
-) {
+if ($resultado_grafica) {
 
-    $dia =
-        $venta_grafica["dia"];
-
-    if (
-        isset(
-            $ventas_grafica[$dia]
-        )
+    while (
+        $venta_grafica =
+        $resultado_grafica->fetch_assoc()
     ) {
 
-        $ventas_grafica[$dia] =
-            floatval(
-                $venta_grafica["total"]
-            );
+        $dia =
+            $venta_grafica["dia"];
+
+
+        if (
+            isset(
+                $ventas_grafica[$dia]
+            )
+        ) {
+
+            $ventas_grafica[$dia] =
+                floatval(
+                    $venta_grafica["total"]
+                );
+
+        }
 
     }
 
@@ -158,13 +269,19 @@ while (
 $max_venta =
     max($ventas_grafica);
 
+
 if ($max_venta <= 0) {
+
     $max_venta = 1;
+
 }
 
 
 $total_semana =
-    array_sum($ventas_grafica);
+    array_sum(
+        $ventas_grafica
+    );
+
 
 
 /* =====================================================
@@ -172,30 +289,53 @@ $total_semana =
    ===================================================== */
 
 $sql_productos_vendidos = "
+
     SELECT
+
         productos.codigo,
+
         productos.nombre,
-        SUM(detalle_venta.cantidad) AS cantidad_vendida
+
+        SUM(
+            detalle_venta.cantidad
+        ) AS cantidad_vendida
+
 
     FROM detalle_venta
 
+
     INNER JOIN productos
-        ON detalle_venta.producto_id = productos.id
+
+        ON detalle_venta.producto_id =
+           productos.id
+
 
     INNER JOIN ventas
-        ON detalle_venta.venta_id = ventas.id
 
-    WHERE ventas.estado = 'Completada'
+        ON detalle_venta.venta_id =
+           ventas.id
+
+
+    WHERE ventas.estado != 'Cancelada'
+
 
     GROUP BY
+
         productos.id,
+
         productos.codigo,
+
         productos.nombre
 
-    ORDER BY cantidad_vendida DESC
+
+    ORDER BY
+        cantidad_vendida DESC
+
 
     LIMIT 5
+
 ";
+
 
 $resultado_productos_vendidos =
     $conexion->query(
@@ -203,31 +343,54 @@ $resultado_productos_vendidos =
     );
 
 
+
 /* =====================================================
    VENTAS POR USUARIO
    ===================================================== */
 
 $sql_ventas_usuario = "
+
     SELECT
+
         usuarios.nombre,
-        COUNT(ventas.id) AS cantidad_ventas,
-        COALESCE(SUM(ventas.total), 0) AS total_ventas
+
+        COUNT(
+            ventas.id
+        ) AS cantidad_ventas,
+
+        COALESCE(
+            SUM(ventas.total),
+            0
+        ) AS total_ventas
+
 
     FROM ventas
 
-    LEFT JOIN usuarios
-        ON ventas.usuario_id = usuarios.id
 
-    WHERE ventas.estado = 'Completada'
+    LEFT JOIN usuarios
+
+        ON ventas.usuario_id =
+           usuarios.id
+
+
+    WHERE ventas.estado != 'Cancelada'
+
 
     GROUP BY
+
         usuarios.id,
+
         usuarios.nombre
 
-    ORDER BY total_ventas DESC
+
+    ORDER BY
+        total_ventas DESC
+
 
     LIMIT 5
+
 ";
+
 
 $resultado_ventas_usuario =
     $conexion->query(
@@ -235,28 +398,46 @@ $resultado_ventas_usuario =
     );
 
 
+
 /* =====================================================
    ÚLTIMAS VENTAS
    ===================================================== */
 
 $sql_ultimas_ventas = "
+
     SELECT
+
         ventas.id,
+
         ventas.total,
+
         ventas.fecha,
+
+        ventas.estado,
+
         usuarios.nombre AS usuario_nombre
+
 
     FROM ventas
 
+
     LEFT JOIN usuarios
-        ON ventas.usuario_id = usuarios.id
 
-    WHERE ventas.estado = 'Completada'
+        ON ventas.usuario_id =
+           usuarios.id
 
-    ORDER BY ventas.id DESC
+
+    WHERE ventas.estado != 'Cancelada'
+
+
+    ORDER BY
+        ventas.id DESC
+
 
     LIMIT 5
+
 ";
+
 
 $resultado_ultimas_ventas =
     $conexion->query(
@@ -266,6 +447,7 @@ $resultado_ultimas_ventas =
 ?>
 
 <!DOCTYPE html>
+
 <html lang="es">
 
 <head>
@@ -281,10 +463,12 @@ $resultado_ultimas_ventas =
         Estadísticas | Changarro Súper y Más
     </title>
 
+
     <link
         rel="stylesheet"
         href="../css/dashboard.css"
     >
+
 
     <style>
 
@@ -632,6 +816,61 @@ $resultado_ultimas_ventas =
 
 
         /* =========================================
+           ESTADOS
+           ========================================= */
+
+        .estado-estadistica {
+
+            display: inline-block;
+
+            padding: 5px 9px;
+
+            border-radius: 15px;
+
+            font-size: 12px;
+
+            font-weight: 600;
+
+        }
+
+
+        .estado-pendiente {
+
+            background: #fff4df;
+
+            color: #c87500;
+
+        }
+
+
+        .estado-preparacion {
+
+            background: #eaf4ff;
+
+            color: #2475b8;
+
+        }
+
+
+        .estado-camino {
+
+            background: #f0eaff;
+
+            color: #7048b8;
+
+        }
+
+
+        .estado-completada {
+
+            background: #e8f7ee;
+
+            color: #16834a;
+
+        }
+
+
+        /* =========================================
            RESPONSIVE
            ========================================= */
 
@@ -711,7 +950,9 @@ $resultado_ultimas_ventas =
     <main class="contenido">
 
 
-        <!-- ENCABEZADO -->
+        <!-- =========================================
+             ENCABEZADO
+             ========================================= -->
 
         <header class="encabezado">
 
@@ -722,8 +963,10 @@ $resultado_ultimas_ventas =
                     Estadísticas
                 </h1>
 
+
                 <p>
-                    Analiza el rendimiento de Changarro Súper y Más.
+                    Analiza el rendimiento de
+                    Changarro Súper y Más.
                 </p>
 
             </div>
@@ -792,11 +1035,14 @@ $resultado_ultimas_ventas =
         <section class="estadisticas-tarjetas">
 
 
+            <!-- VENTAS DE HOY -->
+
             <div class="estadistica-card">
 
                 <span>
                     Ventas de hoy
                 </span>
+
 
                 <h2>
 
@@ -813,6 +1059,7 @@ $resultado_ultimas_ventas =
 
                 </h2>
 
+
                 <p>
 
                     <?php
@@ -828,11 +1075,14 @@ $resultado_ultimas_ventas =
             </div>
 
 
+            <!-- VENTAS DEL MES -->
+
             <div class="estadistica-card">
 
                 <span>
                     Ventas del mes
                 </span>
+
 
                 <h2>
 
@@ -849,6 +1099,7 @@ $resultado_ultimas_ventas =
 
                 </h2>
 
+
                 <p>
 
                     <?php
@@ -864,11 +1115,14 @@ $resultado_ultimas_ventas =
             </div>
 
 
+            <!-- GANANCIA -->
+
             <div class="estadistica-card">
 
                 <span>
                     Ganancia estimada
                 </span>
+
 
                 <h2>
 
@@ -884,6 +1138,7 @@ $resultado_ultimas_ventas =
                     ?>
 
                 </h2>
+
 
                 <p>
                     Ganancia estimada del mes
@@ -906,8 +1161,10 @@ $resultado_ultimas_ventas =
                 Ventas de los últimos 7 días
             </h2>
 
+
             <p>
-                Comportamiento de las ventas realizadas durante la última semana.
+                Comportamiento de las ventas
+                realizadas durante la última semana.
             </p>
 
 
@@ -936,11 +1193,17 @@ $resultado_ultimas_ventas =
                     $nombre_dias = [
 
                         "Mon" => "Lun",
+
                         "Tue" => "Mar",
+
                         "Wed" => "Mié",
+
                         "Thu" => "Jue",
+
                         "Fri" => "Vie",
+
                         "Sat" => "Sáb",
+
                         "Sun" => "Dom"
 
                     ];
@@ -977,6 +1240,7 @@ $resultado_ultimas_ventas =
                                     $total > 0
                                 ): ?>
 
+
                                     <span
                                         class="grafica-valor"
                                     >
@@ -993,6 +1257,7 @@ $resultado_ultimas_ventas =
                                         ?>
 
                                     </span>
+
 
                                 <?php endif; ?>
 
@@ -1066,8 +1331,10 @@ $resultado_ultimas_ventas =
                     🏆 Productos más vendidos
                 </h2>
 
+
                 <p>
-                    Los productos con mayor cantidad de unidades vendidas.
+                    Los productos con mayor
+                    cantidad de unidades vendidas.
                 </p>
 
 
@@ -1101,13 +1368,15 @@ $resultado_ultimas_ventas =
 
 
                     <?php if (
+                        $resultado_productos_vendidos &&
                         $resultado_productos_vendidos->num_rows > 0
                     ): ?>
 
 
                         <?php while (
                             $producto =
-                            $resultado_productos_vendidos->fetch_assoc()
+                            $resultado_productos_vendidos
+                            ->fetch_assoc()
                         ): ?>
 
 
@@ -1173,7 +1442,8 @@ $resultado_ultimas_ventas =
                                 class="sin-datos"
                             >
 
-                                Todavía no hay productos vendidos.
+                                Todavía no hay
+                                productos vendidos.
 
                             </td>
 
@@ -1184,7 +1454,6 @@ $resultado_ultimas_ventas =
 
 
                     </tbody>
-
 
                 </table>
 
@@ -1201,8 +1470,10 @@ $resultado_ultimas_ventas =
                     👤 Ventas por usuario
                 </h2>
 
+
                 <p>
-                    Usuarios con mayor monto de ventas realizadas.
+                    Usuarios con mayor monto
+                    de ventas realizadas.
                 </p>
 
 
@@ -1236,17 +1507,20 @@ $resultado_ultimas_ventas =
 
 
                     <?php if (
+                        $resultado_ventas_usuario &&
                         $resultado_ventas_usuario->num_rows > 0
                     ): ?>
 
 
                         <?php while (
                             $usuario =
-                            $resultado_ventas_usuario->fetch_assoc()
+                            $resultado_ventas_usuario
+                            ->fetch_assoc()
                         ): ?>
 
 
                             <tr>
+
 
                                 <td>
 
@@ -1254,7 +1528,8 @@ $resultado_ultimas_ventas =
 
                                     echo htmlspecialchars(
                                         $usuario["nombre"]
-                                        ?? "No disponible"
+                                        ??
+                                        "No disponible"
                                     );
 
                                     ?>
@@ -1292,6 +1567,7 @@ $resultado_ultimas_ventas =
 
                                 </td>
 
+
                             </tr>
 
 
@@ -1308,7 +1584,8 @@ $resultado_ultimas_ventas =
                                 class="sin-datos"
                             >
 
-                                Todavía no hay ventas registradas.
+                                Todavía no hay
+                                ventas registradas.
 
                             </td>
 
@@ -1319,7 +1596,6 @@ $resultado_ultimas_ventas =
 
 
                     </tbody>
-
 
                 </table>
 
@@ -1344,8 +1620,9 @@ $resultado_ultimas_ventas =
                 🧾 Últimas ventas
             </h2>
 
+
             <p>
-                Últimas operaciones completadas.
+                Últimas operaciones registradas.
             </p>
 
 
@@ -1371,6 +1648,10 @@ $resultado_ultimas_ventas =
                         </th>
 
                         <th>
+                            Estado
+                        </th>
+
+                        <th>
                             Fecha
                         </th>
 
@@ -1383,13 +1664,15 @@ $resultado_ultimas_ventas =
 
 
                 <?php if (
+                    $resultado_ultimas_ventas &&
                     $resultado_ultimas_ventas->num_rows > 0
                 ): ?>
 
 
                     <?php while (
                         $venta =
-                        $resultado_ultimas_ventas->fetch_assoc()
+                        $resultado_ultimas_ventas
+                        ->fetch_assoc()
                     ): ?>
 
 
@@ -1429,10 +1712,110 @@ $resultado_ultimas_ventas =
 
                                 echo htmlspecialchars(
                                     $venta["usuario_nombre"]
-                                    ?? "No disponible"
+                                    ??
+                                    "No disponible"
                                 );
 
                                 ?>
+
+                            </td>
+
+
+                            <td>
+
+
+                                <?php
+
+                                $estado =
+                                    $venta["estado"];
+
+                                ?>
+
+
+                                <?php if (
+                                    $estado ===
+                                    "Pendiente"
+                                ): ?>
+
+                                    <span
+                                        class="
+                                            estado-estadistica
+                                            estado-pendiente
+                                        "
+                                    >
+
+                                        ● Pendiente
+
+                                    </span>
+
+
+                                <?php elseif (
+                                    $estado ===
+                                    "En preparación"
+                                ): ?>
+
+                                    <span
+                                        class="
+                                            estado-estadistica
+                                            estado-preparacion
+                                        "
+                                    >
+
+                                        ● En preparación
+
+                                    </span>
+
+
+                                <?php elseif (
+                                    $estado ===
+                                    "En camino"
+                                ): ?>
+
+                                    <span
+                                        class="
+                                            estado-estadistica
+                                            estado-camino
+                                        "
+                                    >
+
+                                        ● En camino
+
+                                    </span>
+
+
+                                <?php elseif (
+                                    $estado ===
+                                    "Completada"
+                                ): ?>
+
+                                    <span
+                                        class="
+                                            estado-estadistica
+                                            estado-completada
+                                        "
+                                    >
+
+                                        ● Completada
+
+                                    </span>
+
+
+                                <?php else: ?>
+
+                                    <span>
+
+                                        <?php
+
+                                        echo htmlspecialchars(
+                                            $estado
+                                        );
+
+                                        ?>
+
+                                    </span>
+
+                                <?php endif; ?>
+
 
                             </td>
 
@@ -1460,7 +1843,7 @@ $resultado_ultimas_ventas =
                     <tr>
 
                         <td
-                            colspan="4"
+                            colspan="5"
                             class="sin-datos"
                         >
 

@@ -1,12 +1,6 @@
 <?php
 
-session_start();
-
-if (!isset($_SESSION["id"])) {
-    header("Location: ../index.php");
-    exit();
-}
-
+require_once "verificar_acceso.php";
 require_once "../config/conexion.php";
 
 
@@ -26,6 +20,30 @@ $resultado_productos =
 
 
 /* =========================================
+   CALCULAR RESUMEN
+   ========================================= */
+
+$total_productos = 0;
+$total_stock = 0;
+
+if ($resultado_productos) {
+
+    while (
+        $producto =
+        $resultado_productos->fetch_assoc()
+    ) {
+
+        $total_productos++;
+
+        $total_stock +=
+            intval($producto["stock"]);
+
+    }
+
+}
+
+
+/* =========================================
    MOVIMIENTOS DE INVENTARIO
    ========================================= */
 
@@ -36,17 +54,16 @@ $sql_movimientos = "
         movimientos_inventario.tipo,
         movimientos_inventario.cantidad,
         movimientos_inventario.motivo,
-        movimientos_inventario.fecha,
-        usuarios.nombre AS usuario_nombre
+        movimientos_inventario.fecha
     FROM movimientos_inventario
 
     INNER JOIN productos
-        ON movimientos_inventario.producto_id = productos.id
+        ON movimientos_inventario.producto_id =
+           productos.id
 
-    LEFT JOIN usuarios
-        ON movimientos_inventario.usuario_id = usuarios.id
-
-    ORDER BY movimientos_inventario.fecha DESC
+    ORDER BY
+        movimientos_inventario.fecha DESC,
+        movimientos_inventario.id DESC
 ";
 
 $resultado_movimientos =
@@ -55,6 +72,7 @@ $resultado_movimientos =
 ?>
 
 <!DOCTYPE html>
+
 <html lang="es">
 
 <head>
@@ -75,6 +93,270 @@ $resultado_movimientos =
         href="../css/dashboard.css"
     >
 
+    <style>
+
+        /* =====================================
+           RESUMEN
+           ===================================== */
+
+        .inventario-resumen {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 20px;
+
+            margin-bottom: 25px;
+
+        }
+
+
+        .inventario-card {
+
+            background: white;
+
+            border: 1px solid #e5e5e5;
+
+            border-radius: 14px;
+
+            padding: 25px;
+
+            box-shadow:
+                0 3px 10px
+                rgba(0, 0, 0, 0.03);
+
+        }
+
+
+        .inventario-card .titulo {
+
+            display: block;
+
+            color: #777;
+
+            font-size: 13px;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .inventario-card .numero {
+
+            display: block;
+
+            font-size: 30px;
+
+            color: #222;
+
+        }
+
+
+        .inventario-card .descripcion {
+
+            display: block;
+
+            color: #999;
+
+            font-size: 12px;
+
+            margin-top: 5px;
+
+        }
+
+
+        /* =====================================
+           PANEL
+           ===================================== */
+
+        .inventario-panel {
+
+            background: white;
+
+            border: 1px solid #e5e5e5;
+
+            border-radius: 14px;
+
+            padding: 25px;
+
+        }
+
+
+        .inventario-panel-header {
+
+            margin-bottom: 20px;
+
+        }
+
+
+        .inventario-panel-header h2 {
+
+            margin: 0 0 5px 0;
+
+            font-size: 20px;
+
+        }
+
+
+        .inventario-panel-header p {
+
+            margin: 0;
+
+            color: #888;
+
+            font-size: 13px;
+
+        }
+
+
+        /* =====================================
+           TABLA
+           ===================================== */
+
+        .tabla-contenedor {
+
+            overflow-x: auto;
+
+        }
+
+
+        .inventario-tabla {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+        }
+
+
+        .inventario-tabla th {
+
+            padding: 13px 12px;
+
+            text-align: left;
+
+            background: #f6f6f6;
+
+            color: #555;
+
+            font-size: 12px;
+
+            border-bottom: 1px solid #e5e5e5;
+
+        }
+
+
+        .inventario-tabla td {
+
+            padding: 14px 12px;
+
+            font-size: 13px;
+
+            border-bottom: 1px solid #eeeeee;
+
+        }
+
+
+        .inventario-tabla tr:last-child td {
+
+            border-bottom: none;
+
+        }
+
+
+        /* =====================================
+           MOVIMIENTOS
+           ===================================== */
+
+        .movimiento-entrada {
+
+            color: #16834a;
+
+            font-weight: 700;
+
+        }
+
+
+        .movimiento-salida {
+
+            color: #d64545;
+
+            font-weight: 700;
+
+        }
+
+
+        .tipo-movimiento {
+
+            display: inline-block;
+
+            padding: 5px 9px;
+
+            border-radius: 15px;
+
+            font-size: 11px;
+
+            font-weight: 700;
+
+        }
+
+
+        .tipo-entrada {
+
+            background: #e8f8ef;
+
+            color: #16834a;
+
+        }
+
+
+        .tipo-salida {
+
+            background: #ffe8e8;
+
+            color: #c62828;
+
+        }
+
+
+        .fecha-movimiento {
+
+            color: #777;
+
+            white-space: nowrap;
+
+        }
+
+
+        .sin-datos {
+
+            text-align: center;
+
+            padding: 40px !important;
+
+            color: #888;
+
+        }
+
+
+        /* =====================================
+           RESPONSIVE
+           ===================================== */
+
+        @media (max-width: 700px) {
+
+            .inventario-resumen {
+
+                grid-template-columns: 1fr;
+
+            }
+
+        }
+
+    </style>
+
 </head>
 
 
@@ -84,21 +366,23 @@ $resultado_movimientos =
 <div class="contenedor">
 
 
-    <!-- =========================================
+    <!-- =====================================
          SIDEBAR
-         ========================================= -->
+         ===================================== -->
 
     <?php include "../includes/sidebar.php"; ?>
 
 
-    <!-- =========================================
+    <!-- =====================================
          CONTENIDO
-         ========================================= -->
+         ===================================== -->
 
     <main class="contenido">
 
 
-        <!-- ENCABEZADO -->
+        <!-- =================================
+             ENCABEZADO
+             ================================= -->
 
         <header class="encabezado">
 
@@ -110,7 +394,8 @@ $resultado_movimientos =
                 </h1>
 
                 <p>
-                    Controla las entradas y salidas de productos.
+                    Consulta las entradas y salidas
+                    de productos.
                 </p>
 
             </div>
@@ -125,11 +410,13 @@ $resultado_movimientos =
 
                     <?php
 
-                    echo strtoupper(
-                        substr(
-                            $_SESSION["nombre"],
-                            0,
-                            1
+                    echo htmlspecialchars(
+                        strtoupper(
+                            substr(
+                                $_SESSION["nombre"],
+                                0,
+                                1
+                            )
                         )
                     );
 
@@ -174,30 +461,9 @@ $resultado_movimientos =
         </header>
 
 
-        <!-- =========================================
-             RESUMEN DEL INVENTARIO
-             ========================================= -->
-
-        <?php
-
-        $total_productos = 0;
-        $total_stock = 0;
-
-
-        while (
-            $producto =
-            $resultado_productos->fetch_assoc()
-        ) {
-
-            $total_productos++;
-
-            $total_stock +=
-                $producto["stock"];
-
-        }
-
-        ?>
-
+        <!-- =================================
+             RESUMEN
+             ================================= -->
 
         <section class="inventario-resumen">
 
@@ -206,9 +472,13 @@ $resultado_movimientos =
 
             <div class="inventario-card">
 
+
                 <span class="titulo">
+
                     Productos activos
+
                 </span>
+
 
                 <strong class="numero">
 
@@ -220,9 +490,13 @@ $resultado_movimientos =
 
                 </strong>
 
+
                 <span class="descripcion">
+
                     Productos disponibles
+
                 </span>
+
 
             </div>
 
@@ -231,9 +505,13 @@ $resultado_movimientos =
 
             <div class="inventario-card">
 
+
                 <span class="titulo">
+
                     Stock total
+
                 </span>
+
 
                 <strong class="numero">
 
@@ -245,9 +523,13 @@ $resultado_movimientos =
 
                 </strong>
 
+
                 <span class="descripcion">
+
                     Artículos disponibles
+
                 </span>
+
 
             </div>
 
@@ -255,214 +537,39 @@ $resultado_movimientos =
         </section>
 
 
-        <!-- =========================================
-             PANEL DE MOVIMIENTOS
-             ========================================= -->
+        <!-- =================================
+             HISTORIAL DE MOVIMIENTOS
+             ================================= -->
 
         <section class="inventario-panel">
 
 
-            <!-- CABECERA -->
-
             <div class="inventario-panel-header">
 
 
-                <div>
+                <h2>
 
-                    <h2>
-                        Movimientos de inventario
-                    </h2>
+                    Movimientos de inventario
 
-                    <p>
-                        Historial de entradas y salidas.
-                    </p>
-
-                </div>
+                </h2>
 
 
-                <button
-                    type="button"
-                    class="btn-movimiento"
-                    onclick="
-                        document.getElementById('formMovimiento').style.display =
-                        document.getElementById('formMovimiento').style.display === 'none'
-                        ? 'block'
-                        : 'none';
-                    "
-                >
+                <p>
 
-                    + Registrar movimiento
+                    Historial automático de entradas
+                    y salidas de productos.
 
-                </button>
+                </p>
 
 
             </div>
 
 
-            <!-- =========================================
-                 FORMULARIO
-                 ========================================= -->
+            <!-- =================================
+                 TABLA
+                 ================================= -->
 
-            <div
-                id="formMovimiento"
-                style="display:none;"
-            >
-
-
-                <form
-                    class="form-movimiento"
-                    method="POST"
-                    action="movimiento_inventario.php"
-                >
-
-
-                    <!-- PRODUCTO -->
-
-                    <label>
-                        Producto
-                    </label>
-
-
-                    <select
-                        name="producto_id"
-                        required
-                    >
-
-                        <option value="">
-                            Selecciona un producto
-                        </option>
-
-
-                        <?php
-
-                        $productos_form =
-                            $conexion->query(
-                                "
-                                SELECT id, nombre, stock
-                                FROM productos
-                                WHERE activo = 1
-                                ORDER BY nombre
-                                "
-                            );
-
-
-                        while (
-                            $p =
-                            $productos_form->fetch_assoc()
-                        ):
-
-                        ?>
-
-
-                            <option
-                                value="<?php echo $p["id"]; ?>"
-                            >
-
-                                <?php
-
-                                echo htmlspecialchars(
-                                    $p["nombre"]
-                                );
-
-                                ?>
-
-                                - Stock:
-
-                                <?php
-
-                                echo $p["stock"];
-
-                                ?>
-
-                            </option>
-
-
-                        <?php endwhile; ?>
-
-
-                    </select>
-
-
-                    <!-- TIPO -->
-
-                    <label>
-                        Tipo de movimiento
-                    </label>
-
-
-                    <select
-                        name="tipo"
-                        required
-                    >
-
-                        <option value="">
-                            Selecciona
-                        </option>
-
-                        <option value="entrada">
-                            Entrada
-                        </option>
-
-                        <option value="salida">
-                            Salida
-                        </option>
-
-                    </select>
-
-
-                    <!-- CANTIDAD -->
-
-                    <label>
-                        Cantidad
-                    </label>
-
-
-                    <input
-                        type="number"
-                        name="cantidad"
-                        min="1"
-                        required
-                    >
-
-
-                    <!-- MOTIVO -->
-
-                    <label>
-                        Motivo
-                    </label>
-
-
-                    <input
-                        type="text"
-                        name="motivo"
-                        placeholder="Ej. Compra de mercancía"
-                    >
-
-
-                    <!-- GUARDAR -->
-
-                    <button
-                        type="submit"
-                    >
-
-                        Guardar movimiento
-
-                    </button>
-
-
-                </form>
-
-
-            </div>
-
-
-            <!-- =========================================
-                 TABLA DE MOVIMIENTOS
-                 ========================================= -->
-
-            <div
-                class="tabla-contenedor"
-            >
+            <div class="tabla-contenedor">
 
 
                 <table
@@ -491,10 +598,6 @@ $resultado_movimientos =
                             </th>
 
                             <th>
-                                Realizado por
-                            </th>
-
-                            <th>
                                 Fecha
                             </th>
 
@@ -514,7 +617,8 @@ $resultado_movimientos =
 
                         <?php while (
                             $movimiento =
-                            $resultado_movimientos->fetch_assoc()
+                            $resultado_movimientos
+                            ->fetch_assoc()
                         ): ?>
 
 
@@ -525,13 +629,19 @@ $resultado_movimientos =
 
                                 <td>
 
-                                    <?php
+                                    <strong>
 
-                                    echo htmlspecialchars(
-                                        $movimiento["nombre"]
-                                    );
+                                        <?php
 
-                                    ?>
+                                        echo htmlspecialchars(
+                                            $movimiento[
+                                                "nombre"
+                                            ]
+                                        );
+
+                                        ?>
+
+                                    </strong>
 
                                 </td>
 
@@ -542,13 +652,17 @@ $resultado_movimientos =
 
 
                                     <?php if (
-                                        $movimiento["tipo"]
-                                        === "entrada"
+                                        $movimiento[
+                                            "tipo"
+                                        ] === "entrada"
                                     ): ?>
 
 
                                         <span
-                                            class="movimiento-entrada"
+                                            class="
+                                                tipo-movimiento
+                                                tipo-entrada
+                                            "
                                         >
 
                                             Entrada
@@ -560,7 +674,10 @@ $resultado_movimientos =
 
 
                                         <span
-                                            class="movimiento-salida"
+                                            class="
+                                                tipo-movimiento
+                                                tipo-salida
+                                            "
                                         >
 
                                             Salida
@@ -580,43 +697,56 @@ $resultado_movimientos =
 
 
                                     <?php if (
-                                        $movimiento["tipo"]
-                                        === "entrada"
+                                        $movimiento[
+                                            "tipo"
+                                        ] === "entrada"
                                     ): ?>
 
+
                                         <span
-                                            class="movimiento-entrada"
+                                            class="
+                                                movimiento-entrada
+                                            "
                                         >
 
                                             +
 
                                             <?php
 
-                                            echo $movimiento[
-                                                "cantidad"
-                                            ];
+                                            echo intval(
+                                                $movimiento[
+                                                    "cantidad"
+                                                ]
+                                            );
 
                                             ?>
 
                                         </span>
 
+
                                     <?php else: ?>
 
+
                                         <span
-                                            class="movimiento-salida"
+                                            class="
+                                                movimiento-salida
+                                            "
                                         >
 
                                             -
 
                                             <?php
 
-                                            echo $movimiento[
-                                                "cantidad"
-                                            ];
+                                            echo intval(
+                                                $movimiento[
+                                                    "cantidad"
+                                                ]
+                                            );
 
                                             ?>
 
                                         </span>
+
 
                                     <?php endif; ?>
 
@@ -631,26 +761,11 @@ $resultado_movimientos =
                                     <?php
 
                                     echo htmlspecialchars(
-                                        $movimiento["motivo"]
-                                        ?? ""
-                                    );
-
-                                    ?>
-
-                                </td>
-
-
-                                <!-- USUARIO -->
-
-                                <td>
-
-                                    <?php
-
-                                    echo htmlspecialchars(
                                         $movimiento[
-                                            "usuario_nombre"
+                                            "motivo"
                                         ]
-                                        ?? "No disponible"
+                                        ??
+                                        "Movimiento de inventario"
                                     );
 
                                     ?>
@@ -662,13 +777,26 @@ $resultado_movimientos =
 
                                 <td>
 
-                                    <?php
+                                    <span
+                                        class="
+                                            fecha-movimiento
+                                        "
+                                    >
 
-                                    echo $movimiento[
-                                        "fecha"
-                                    ];
+                                        <?php
 
-                                    ?>
+                                        echo date(
+                                            "d/m/Y H:i",
+                                            strtotime(
+                                                $movimiento[
+                                                    "fecha"
+                                                ]
+                                            )
+                                        );
+
+                                        ?>
+
+                                    </span>
 
                                 </td>
 
@@ -685,11 +813,12 @@ $resultado_movimientos =
                         <tr>
 
                             <td
-                                colspan="6"
+                                colspan="5"
                                 class="sin-datos"
                             >
 
-                                No hay movimientos registrados.
+                                No hay movimientos
+                                de inventario registrados.
 
                             </td>
 

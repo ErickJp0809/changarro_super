@@ -1,17 +1,11 @@
 <?php
 
-session_start();
-
-if (!isset($_SESSION["id"])) {
-    header("Location: ../index.php");
-    exit();
-}
-
+require_once "verificar_acceso.php";
 require_once "../config/conexion.php";
 
 
 /* =========================================
-   OBTENER VENTAS
+   OBTENER VENTAS / PEDIDOS ONLINE
    ========================================= */
 
 $sql = "
@@ -19,11 +13,15 @@ $sql = "
         ventas.id,
         ventas.total,
         ventas.fecha,
+        ventas.metodo_pago,
         ventas.estado,
-        usuarios.nombre AS usuario_nombre
+        usuarios.nombre AS cliente_nombre,
+        usuarios.usuario AS cliente_usuario
     FROM ventas
+
     LEFT JOIN usuarios
         ON ventas.usuario_id = usuarios.id
+
     ORDER BY ventas.id DESC
 ";
 
@@ -32,6 +30,7 @@ $resultado = $conexion->query($sql);
 ?>
 
 <!DOCTYPE html>
+
 <html lang="es">
 
 <head>
@@ -44,13 +43,249 @@ $resultado = $conexion->query($sql);
     >
 
     <title>
-        Ventas | Changarro Súper y Más
+        Pedidos | Changarro Súper y Más
     </title>
+
 
     <link
         rel="stylesheet"
         href="../css/dashboard.css"
     >
+
+
+    <style>
+
+        /* =====================================
+           ENCABEZADO
+           ===================================== */
+
+        .cabecera-productos {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            gap: 20px;
+
+            margin-bottom: 20px;
+
+        }
+
+
+        .cabecera-productos h2 {
+
+            margin-bottom: 5px;
+
+        }
+
+
+        .cabecera-productos p {
+
+            margin: 0;
+
+            color: #888;
+
+            font-size: 13px;
+
+        }
+
+
+        /* =====================================
+           INFORMACIÓN DEL CLIENTE
+           ===================================== */
+
+        .cliente-venta strong {
+
+            display: block;
+
+            font-size: 13px;
+
+        }
+
+
+        .cliente-venta span {
+
+            display: block;
+
+            margin-top: 3px;
+
+            color: #888;
+
+            font-size: 11px;
+
+        }
+
+
+        /* =====================================
+           ESTADOS
+           ===================================== */
+
+        .estado-pendiente {
+
+            color: #d88900;
+
+            font-size: 12px;
+
+            font-weight: 600;
+
+        }
+
+
+        .estado-pagada {
+
+            color: #1d9b55;
+
+            font-size: 12px;
+
+            font-weight: 600;
+
+        }
+
+
+        .estado-cancelada {
+
+            color: #d64545;
+
+            font-size: 12px;
+
+            font-weight: 600;
+
+        }
+
+
+        /* =====================================
+           MÉTODO DE PAGO
+           ===================================== */
+
+        .metodo-tarjeta {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 6px;
+
+            font-size: 12px;
+
+            color: #555;
+
+        }
+
+
+        /* =====================================
+           BOTÓN VER
+           ===================================== */
+
+        .btn-ver-pedido {
+
+            display: inline-block;
+
+            padding: 7px 12px;
+
+            background: #f7941d;
+
+            color: white;
+
+            text-decoration: none;
+
+            border-radius: 7px;
+
+            font-size: 12px;
+
+            font-weight: 600;
+
+            transition: 0.2s;
+
+        }
+
+
+        .btn-ver-pedido:hover {
+
+            background: #e98212;
+
+            transform: translateY(-1px);
+
+        }
+
+
+        /* =====================================
+           MENSAJE SIN PEDIDOS
+           ===================================== */
+
+        .sin-datos {
+
+            text-align: center;
+
+            padding: 40px !important;
+
+            color: #888;
+
+        }
+
+
+        /* =====================================
+           PERFIL
+           ===================================== */
+
+        .perfil {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+        }
+
+
+        .perfil strong {
+
+            display: block;
+
+        }
+
+
+        .perfil span {
+
+            display: block;
+
+            margin-top: 2px;
+
+            color: #888;
+
+            font-size: 12px;
+
+        }
+
+
+        /* =====================================
+           RESPONSIVE
+           ===================================== */
+
+        @media (max-width: 900px) {
+
+            .cabecera-productos {
+
+                align-items: flex-start;
+
+            }
+
+        }
+
+
+        @media (max-width: 600px) {
+
+            .cabecera-productos {
+
+                flex-direction: column;
+
+            }
+
+        }
+
+    </style>
 
 </head>
 
@@ -61,21 +296,23 @@ $resultado = $conexion->query($sql);
 <div class="contenedor">
 
 
-    <!-- =========================================
+    <!-- =====================================
          SIDEBAR
-         ========================================= -->
+         ===================================== -->
 
     <?php include "../includes/sidebar.php"; ?>
 
 
-    <!-- =========================================
+    <!-- =====================================
          CONTENIDO
-         ========================================= -->
+         ===================================== -->
 
     <main class="contenido">
 
 
-        <!-- ENCABEZADO -->
+        <!-- =================================
+             ENCABEZADO
+             ================================= -->
 
         <header class="encabezado">
 
@@ -83,11 +320,17 @@ $resultado = $conexion->query($sql);
             <div>
 
                 <h1>
-                    Ventas
+
+                    Pedidos
+
                 </h1>
 
+
                 <p>
-                    Consulta y administra las ventas realizadas.
+
+                    Consulta los pedidos realizados
+                    desde la tienda en línea.
+
                 </p>
 
             </div>
@@ -102,11 +345,13 @@ $resultado = $conexion->query($sql);
 
                     <?php
 
-                    echo strtoupper(
-                        substr(
-                            $_SESSION["nombre"],
-                            0,
-                            1
+                    echo htmlspecialchars(
+                        strtoupper(
+                            substr(
+                                $_SESSION["nombre"],
+                                0,
+                                1
+                            )
                         )
                     );
 
@@ -151,9 +396,9 @@ $resultado = $conexion->query($sql);
         </header>
 
 
-        <!-- =========================================
-             PANEL DE VENTAS
-             ========================================= -->
+        <!-- =================================
+             PANEL
+             ================================= -->
 
         <section class="panel-productos">
 
@@ -166,32 +411,28 @@ $resultado = $conexion->query($sql);
                 <div>
 
                     <h2>
-                        Historial de ventas
+
+                        Pedidos de la tienda
+
                     </h2>
 
+
                     <p>
-                        Ventas registradas en el sistema.
+
+                        Aquí aparecen las compras
+                        realizadas por los clientes.
+
                     </p>
 
                 </div>
 
 
-                <a
-                    href="crear_venta.php"
-                    class="btn-agregar"
-                >
-
-                    + Nueva venta
-
-                </a>
-
-
             </div>
 
 
-            <!-- =========================================
+            <!-- =================================
                  TABLA
-                 ========================================= -->
+                 ================================= -->
 
             <div class="tabla-contenedor">
 
@@ -203,29 +444,55 @@ $resultado = $conexion->query($sql);
 
                         <tr>
 
-                            <th>
-                                Folio
-                            </th>
 
                             <th>
+
+                                Pedido
+
+                            </th>
+
+
+                            <th>
+
+                                Cliente
+
+                            </th>
+
+
+                            <th>
+
                                 Total
+
                             </th>
 
+
                             <th>
+
+                                Pago
+
+                            </th>
+
+
+                            <th>
+
                                 Fecha
+
                             </th>
 
-                            <th>
-                                Realizada por
-                            </th>
 
                             <th>
+
                                 Estado
+
                             </th>
 
+
                             <th>
-                                Acciones
+
+                                Acción
+
                             </th>
+
 
                         </tr>
 
@@ -242,7 +509,7 @@ $resultado = $conexion->query($sql);
 
 
                         <?php while (
-                            $venta =
+                            $pedido =
                             $resultado->fetch_assoc()
                         ): ?>
 
@@ -250,17 +517,73 @@ $resultado = $conexion->query($sql);
                             <tr>
 
 
-                                <!-- FOLIO -->
+                                <!-- PEDIDO -->
 
                                 <td>
 
-                                    #
+                                    <strong>
 
-                                    <?php
+                                        #
 
-                                    echo $venta["id"];
+                                        <?php
 
-                                    ?>
+                                        echo intval(
+                                            $pedido["id"]
+                                        );
+
+                                        ?>
+
+                                    </strong>
+
+                                </td>
+
+
+                                <!-- CLIENTE -->
+
+                                <td>
+
+                                    <div
+                                        class="cliente-venta"
+                                    >
+
+
+                                        <strong>
+
+                                            <?php
+
+                                            echo htmlspecialchars(
+                                                $pedido[
+                                                    "cliente_nombre"
+                                                ]
+                                                ??
+                                                "Cliente"
+                                            );
+
+                                            ?>
+
+                                        </strong>
+
+
+                                        <span>
+
+                                            @
+
+                                            <?php
+
+                                            echo htmlspecialchars(
+                                                $pedido[
+                                                    "cliente_usuario"
+                                                ]
+                                                ??
+                                                ""
+                                            );
+
+                                            ?>
+
+                                        </span>
+
+
+                                    </div>
 
                                 </td>
 
@@ -269,16 +592,37 @@ $resultado = $conexion->query($sql);
 
                                 <td>
 
-                                    $
+                                    <strong>
 
-                                    <?php
+                                        $
 
-                                    echo number_format(
-                                        $venta["total"],
-                                        2
-                                    );
+                                        <?php
 
-                                    ?>
+                                        echo number_format(
+                                            $pedido["total"],
+                                            2
+                                        );
+
+                                        ?>
+
+                                    </strong>
+
+                                </td>
+
+
+                                <!-- PAGO -->
+
+                                <td>
+
+                                    <span
+                                        class="metodo-tarjeta"
+                                    >
+
+                                        💳
+
+                                        Tarjeta
+
+                                    </span>
 
                                 </td>
 
@@ -289,22 +633,11 @@ $resultado = $conexion->query($sql);
 
                                     <?php
 
-                                    echo $venta["fecha"];
-
-                                    ?>
-
-                                </td>
-
-
-                                <!-- REALIZADA POR -->
-
-                                <td>
-
-                                    <?php
-
-                                    echo htmlspecialchars(
-                                        $venta["usuario_nombre"]
-                                        ?? "No disponible"
+                                    echo date(
+                                        "d/m/Y H:i",
+                                        strtotime(
+                                            $pedido["fecha"]
+                                        )
                                     );
 
                                     ?>
@@ -317,17 +650,40 @@ $resultado = $conexion->query($sql);
                                 <td>
 
 
+                                    <?php
+
+                                    $estado =
+                                        $pedido["estado"];
+
+                                    ?>
+
+
                                     <?php if (
-                                        $venta["estado"]
-                                        === "Cancelada"
+                                        $estado ===
+                                        "Cancelada"
                                     ): ?>
 
 
                                         <span
-                                            class="estado-inactivo"
+                                            class="estado-cancelada"
                                         >
 
                                             ● Cancelada
+
+                                        </span>
+
+
+                                    <?php elseif (
+                                        $estado ===
+                                        "Pendiente"
+                                    ): ?>
+
+
+                                        <span
+                                            class="estado-pendiente"
+                                        >
+
+                                            ● Pendiente
 
                                         </span>
 
@@ -336,10 +692,10 @@ $resultado = $conexion->query($sql);
 
 
                                         <span
-                                            class="estado-activo"
+                                            class="estado-pagada"
                                         >
 
-                                            ● Completada
+                                            ● Pagada
 
                                         </span>
 
@@ -350,17 +706,17 @@ $resultado = $conexion->query($sql);
                                 </td>
 
 
-                                <!-- ACCIONES -->
+                                <!-- ACCIÓN -->
 
                                 <td>
 
 
                                     <a
-                                        href="detalle_venta.php?id=<?php echo $venta["id"]; ?>"
-                                        class="btn-editar"
+                                        href="detalle_venta.php?id=<?php echo intval($pedido["id"]); ?>"
+                                        class="btn-ver-pedido"
                                     >
 
-                                        Ver
+                                        Ver pedido
 
                                     </a>
 
@@ -380,11 +736,12 @@ $resultado = $conexion->query($sql);
                         <tr>
 
                             <td
-                                colspan="6"
+                                colspan="7"
                                 class="sin-datos"
                             >
 
-                                No hay ventas registradas todavía.
+                                Todavía no hay pedidos
+                                realizados desde la tienda.
 
                             </td>
 
